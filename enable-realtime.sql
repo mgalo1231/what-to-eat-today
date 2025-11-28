@@ -13,12 +13,14 @@
 
 -- 方法 1：通过 SQL 启用 Realtime（推荐）
 -- 为以下表启用 Realtime 复制
+
+-- 如果使用 public schema（默认），使用以下命令：
 alter publication supabase_realtime add table public.recipes;
 alter publication supabase_realtime add table public.inventory;
 alter publication supabase_realtime add table public.shopping_list;
 alter publication supabase_realtime add table public.chat_logs;
 
--- 如果使用 menuapp schema，使用以下命令：
+-- 如果使用 menuapp schema，使用以下命令（需要先创建 menuapp schema）：
 -- alter publication supabase_realtime add table menuapp.recipes;
 -- alter publication supabase_realtime add table menuapp.inventory;
 -- alter publication supabase_realtime add table menuapp.shopping_list;
