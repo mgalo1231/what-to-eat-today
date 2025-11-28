@@ -137,21 +137,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!userId) throw new Error('Not logged in')
       await apiDeleteHousehold(userId, id)
       // 从列表中移除
-      setHouseholds((prev) => prev.filter((h) => h.id !== id))
-      // 如果删除的是当前家庭，切换到其他家庭或回到个人模式
-      if (currentHouseholdId === id) {
-        const remaining = households.filter((h) => h.id !== id)
-        if (remaining.length > 0) {
-          setCurrentHouseholdId(remaining[0].id)
-          setDbHouseholdId(remaining[0].id)
-          pullAllToDexie(remaining[0].id)
-        } else {
-          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
-          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
+      setHouseholds((prev) => {
+        const remaining = prev.filter((h) => h.id !== id)
+        // 如果删除的是当前家庭，切换到其他家庭或回到个人模式
+        if (currentHouseholdId === id) {
+          if (remaining.length > 0) {
+            setCurrentHouseholdId(remaining[0].id)
+            setDbHouseholdId(remaining[0].id)
+            pullAllToDexie(remaining[0].id)
+          } else {
+            setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+            setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
+          }
         }
-      }
+        return remaining
+      })
     },
-    [userId, currentHouseholdId, households],
+    [userId, currentHouseholdId],
   )
 
   const getOrCreateHouseholds = useCallback(

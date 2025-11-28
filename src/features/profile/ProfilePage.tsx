@@ -220,15 +220,16 @@ export const ProfilePage = () => {
   // 检查用户是否是某个家庭的 owner
   // 注意：只对当前家庭准确，其他家庭会在删除时由 API 验证
   const isOwner = (householdId: string): boolean => {
-    if (!userId) return false
+    if (!userId || !householdId) return false
     // 如果是当前家庭，使用 members 列表判断
-    if (householdId === household?.id && members.length > 0) {
+    if (householdId === household?.id) {
+      if (members.length === 0) return false // 成员列表还没加载，不显示删除按钮
       const member = members.find((m) => m.householdId === householdId && m.userId === userId)
       return member?.role === 'owner'
     }
-    // 对于其他家庭，假设可以删除（API 会验证权限）
-    // 这样用户可以看到删除按钮，但如果不是 owner，API 会返回错误
-    return true
+    // 对于其他家庭，暂时不显示删除按钮（需要加载该家庭的成员信息才能判断）
+    // 用户可以在切换到该家庭后再删除
+    return false
   }
 
   const handleDeleteHousehold = async (householdId: string, householdName: string) => {
