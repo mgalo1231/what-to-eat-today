@@ -10,6 +10,8 @@ import { categorizeByInventory } from '@/lib/filters'
 import { TagPill } from '@/components/ui/TagPill'
 import { ingredientDiff } from '@/db/repositories'
 import { discoverRecipes, type DiscoverRecipe } from '@/data/discoverRecipes'
+import { useToast } from '@/components/ui/Toast'
+import { RecipeCardSkeleton } from '@/components/ui/Skeleton'
 import type { Recipe } from '@/types/entities'
 
 type DurationValue = 'all' | '20' | '40' | '60'
@@ -26,6 +28,7 @@ const discoverTags = ['全部', '川菜', '粤菜', '湘菜', '东北菜', '日�
 export const TodayPage = () => {
   const recipes = useRecipes()
   const inventory = useInventory()
+  const { showToast } = useToast()
   const [duration, setDuration] = useState<DurationValue>('all')
   const [tag, setTag] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<Recipe[]>([])
@@ -84,8 +87,9 @@ export const TodayPage = () => {
         steps: recipe.steps,
       })
       setAddedTitles((prev) => new Set(prev).add(recipe.title))
-    } catch (error) {
-      console.error('添加菜谱失败:', error)
+      showToast(`「${recipe.title}」已添加到菜谱库`, 'success')
+    } catch {
+      showToast('添加失败，请重试', 'error')
     } finally {
       setAddingTitle(null)
     }
@@ -96,8 +100,24 @@ export const TodayPage = () => {
     return categorizeByInventory(recipes, inventory)
   }, [recipes, inventory])
 
+  // 加载状态
+  if (!recipes) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="rounded-[32px] bg-gradient-to-br from-ios-primary to-ios-secondary p-6 text-white shadow-card">
+          <p className="text-sm uppercase tracking-[0.3em] text-white/70">今天吃什么</p>
+          <h1 className="mt-3 text-3xl font-semibold">3 秒找到灵感</h1>
+        </div>
+        <div className="space-y-3">
+          <RecipeCardSkeleton />
+          <RecipeCardSkeleton />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <section className="rounded-[32px] bg-gradient-to-br from-ios-primary to-ios-secondary p-6 text-white shadow-card">
         <p className="text-sm uppercase tracking-[0.3em] text-white/70">
           今天吃什么

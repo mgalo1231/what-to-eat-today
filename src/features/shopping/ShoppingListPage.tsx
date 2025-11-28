@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { ShoppingBasket } from 'lucide-react'
+import { ShoppingBasket, Check, Trash2 } from 'lucide-react'
 
 import { useInventory, useRecipes, useShoppingList } from '@/db/hooks'
 import {
@@ -9,6 +9,9 @@ import {
 } from '@/db/repositories'
 import type { ShoppingListItem } from '@/types/entities'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 type ShoppingFormState = {
   name: string
@@ -26,6 +29,8 @@ export const ShoppingListPage = () => {
   const shoppingList = useShoppingList()
   const inventory = useInventory()
   const recipes = useRecipes()
+  const { showToast } = useToast()
+  const { confirm } = useConfirm()
   const [formState, setFormState] = useState(defaultForm)
 
   const recipeMap = useMemo(() => {
@@ -36,7 +41,7 @@ export const ShoppingListPage = () => {
   const handleAdd = async (event: FormEvent) => {
     event.preventDefault()
     if (!formState.name.trim()) {
-      window.alert('请填写名称')
+      showToast('请填写名称', 'error')
       return
     }
     await shoppingRepository.create({
@@ -45,6 +50,7 @@ export const ShoppingListPage = () => {
       unit: formState.unit,
       isBought: false,
     })
+    showToast(`${formState.name} 已添加到清单`, 'success')
     setFormState({ ...defaultForm })
   }
 
@@ -72,23 +78,48 @@ export const ShoppingListPage = () => {
     await shoppingRepository.update(item.id, { isBought: nextState })
     if (nextState) {
       await restockInventory(item)
+      showToast(`${item.name} 已同步到库存 ✓`, 'success')
     }
   }
 
   const clearPurchased = async () => {
     if (!shoppingList?.some((item) => item.isBought)) {
-      window.alert('没有已购项目')
+      showToast('没有已购项目', 'info')
       return
     }
-    if (!window.confirm('清空已购商品？库存数据已更新，无需重复。')) return
+    const confirmed = await confirm({
+      title: '清空已购商品',
+      message: '库存数据已更新，确定清空已购商品吗？',
+      confirmText: '清空',
+      danger: true,
+    })
+    if (!confirmed) return
     await shoppingRepository.clearBought()
+    showToast('已购商品已清空', 'success')
   }
 
   const pending = shoppingList?.filter((item) => !item.isBought) ?? []
   const completed = shoppingList?.filter((item) => item.isBought) ?? []
 
+  // 加载状态
+  if (!shoppingList) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <header className="space-y-1">
+          <p className="text-sm text-ios-muted">购物清单</p>
+          <h1 className="text-3xl font-semibold">超市计划</h1>
+        </header>
+        <div className="space-y-3 rounded-[24px] bg-white p-4 shadow-card">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-14 w-full rounded-[18px]" />
+          <Skeleton className="h-14 w-full rounded-[18px]" />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <header className="space-y-1">
         <p className="text-sm text-ios-muted">购物清单</p>
         <h1 className="text-3xl font-semibold">超市计划</h1>
@@ -102,14 +133,21 @@ export const ShoppingListPage = () => {
           {pending.map((item) => (
             <label
               key={item.id}
-              className="flex items-center gap-3 rounded-[18px] border border-ios-border px-3 py-2"
+              className="card-press flex items-center gap-3 rounded-[18px] border border-ios-border px-3 py-2 cursor-pointer"
             >
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded-full border-ios-border accent-ios-primary"
-                checked={item.isBought}
-                onChange={() => toggleItem(item)}
-              />
+              <div
+                className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
+                  item.isBought
+                    ? 'border-ios-primary bg-ios-primary'
+                    : 'border-ios-muted'
+                }`}
+                onClick={(e) => {
+                  e.preventDefault()
+                  toggleItem(item)
+                }}
+              >
+                {item.isBought && <Check className="h-4 w-4 text-white" />}
+              </div>
               <div className="flex-1">
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-xs text-ios-muted">
@@ -123,21 +161,24 @@ export const ShoppingListPage = () => {
           ))}
           {pending.length === 0 && (
             <div className="rounded-[18px] border border-dashed border-ios-border px-3 py-8 text-center text-ios-muted">
-              清单为空，去菜谱页面生成或手动添加。
+              <ShoppingBasket className="mx-auto mb-2 h-8 w-8 text-ios-muted/50" />
+              清单为空，去菜谱页面生成或手动添加
             </div>
           )}
         </div>
       </section>
       {completed.length > 0 && (
-        <section className="space-y-2 rounded-[24px] bg-ios-primaryMuted/40 p-4">
+        <section className="space-y-2 rounded-[24px] bg-green-50 p-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-ios-primary">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-green-600">
+              <Check className="h-5 w-5" />
               已完成（{completed.length}）
             </h2>
             <button
-              className="text-sm font-semibold text-ios-primary underline"
+              className="btn-press flex items-center gap-1 text-sm font-semibold text-red-500"
               onClick={clearPurchased}
             >
+              <Trash2 className="h-4 w-4" />
               清空
             </button>
           </div>
@@ -145,14 +186,12 @@ export const ShoppingListPage = () => {
             {completed.map((item) => (
               <label
                 key={item.id}
-                className="flex items-center gap-3 rounded-[18px] border border-transparent bg-white/70 px-3 py-2 text-sm text-ios-muted line-through"
+                className="flex items-center gap-3 rounded-[18px] border border-transparent bg-white/70 px-3 py-2 text-sm text-ios-muted line-through cursor-pointer"
+                onClick={() => toggleItem(item)}
               >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded-full accent-ios-primary"
-                  checked={item.isBought}
-                  onChange={() => toggleItem(item)}
-                />
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                  <Check className="h-3 w-3 text-white" />
+                </div>
                 <span>
                   {item.name} · {item.quantity}
                   {item.unit}
@@ -166,7 +205,7 @@ export const ShoppingListPage = () => {
         <h2 className="text-lg font-semibold">手动添加</h2>
         <form className="space-y-3" onSubmit={handleAdd}>
           <input
-            className="w-full rounded-2xl border border-ios-border px-4 py-3"
+            className="w-full rounded-2xl border border-ios-border px-4 py-3 focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
             placeholder="食材 / 商品名称"
             value={formState.name}
             onChange={(event) =>
@@ -177,7 +216,7 @@ export const ShoppingListPage = () => {
             <input
               type="number"
               min={1}
-              className="rounded-2xl border border-ios-border px-4 py-3"
+              className="rounded-2xl border border-ios-border px-4 py-3 focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
               value={formState.quantity}
               onChange={(event) =>
                 setFormState({
@@ -188,7 +227,7 @@ export const ShoppingListPage = () => {
               placeholder="数量"
             />
             <input
-              className="rounded-2xl border border-ios-border px-4 py-3"
+              className="rounded-2xl border border-ios-border px-4 py-3 focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
               value={formState.unit}
               onChange={(event) =>
                 setFormState({ ...formState, unit: event.target.value })
@@ -196,7 +235,7 @@ export const ShoppingListPage = () => {
               placeholder="单位"
             />
           </div>
-          <Button type="submit" fullWidth>
+          <Button type="submit" fullWidth className="btn-press">
             <ShoppingBasket className="mr-2 h-4 w-4" />
             添加到清单
           </Button>
@@ -205,4 +244,3 @@ export const ShoppingListPage = () => {
     </div>
   )
 }
-

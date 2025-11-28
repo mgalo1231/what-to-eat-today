@@ -1,3 +1,4 @@
+import { Edit3, Trash2, AlertTriangle } from 'lucide-react'
 import type { InventoryItem } from '@/types/entities'
 import { TagPill } from '@/components/ui/TagPill'
 import { formatDate, daysUntil } from '@/lib/format'
@@ -14,44 +15,60 @@ export const InventoryItemCard = ({
   onDelete,
 }: InventoryItemCardProps) => {
   const days = daysUntil(item.expiryDate)
-  const nearing = typeof days === 'number' && days <= 2
+  const nearing = typeof days === 'number' && days <= 2 && days >= 0
   const expired = typeof days === 'number' && days < 0
 
   return (
-    <div className="flex items-center gap-3 rounded-[20px] border border-ios-border bg-white p-3 shadow-soft">
+    <div
+      className={`card-press flex items-center gap-3 rounded-[20px] border bg-white p-3 shadow-soft transition-colors ${
+        expired
+          ? 'border-red-200 bg-red-50'
+          : nearing
+          ? 'border-amber-200 bg-amber-50'
+          : 'border-ios-border'
+      }`}
+    >
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold">{item.name}</h3>
-          <TagPill tone={nearing ? 'warn' : 'default'}>{item.location}</TagPill>
+          <TagPill tone={expired ? 'warn' : nearing ? 'accent' : 'default'}>
+            {item.location}
+          </TagPill>
         </div>
-        <p className="text-sm text-ios-muted">剩余 {item.quantity}{item.unit}</p>
+        <p className="text-sm text-ios-muted">
+          剩余 <span className="font-semibold text-ios-text">{item.quantity}</span> {item.unit}
+        </p>
         <p
-          className={`text-xs ${
-            expired ? 'text-ios-danger' : nearing ? 'text-ios-primary' : 'text-ios-muted'
+          className={`flex items-center gap-1 text-xs ${
+            expired ? 'text-red-500' : nearing ? 'text-amber-600' : 'text-ios-muted'
           }`}
         >
+          {(expired || nearing) && <AlertTriangle className="h-3 w-3" />}
           {item.expiryDate
-            ? `保质期：${formatDate(item.expiryDate)}（${days ?? '未知'} 天）`
+            ? expired
+              ? `已过期 ${Math.abs(days!)} 天`
+              : nearing
+              ? `还剩 ${days} 天过期`
+              : `${formatDate(item.expiryDate)} 到期`
             : '常备食材'}
         </p>
       </div>
-      <div className="flex flex-col gap-2 text-sm">
+      <div className="flex gap-2">
         <button
           type="button"
-          className="rounded-full bg-ios-primary/10 px-3 py-1 text-ios-primary"
+          className="btn-press flex h-9 w-9 items-center justify-center rounded-full bg-ios-primary/10 text-ios-primary"
           onClick={() => onEdit(item)}
         >
-          编辑
+          <Edit3 className="h-4 w-4" />
         </button>
         <button
           type="button"
-          className="rounded-full bg-ios-danger/10 px-3 py-1 text-ios-danger"
+          className="btn-press flex h-9 w-9 items-center justify-center rounded-full bg-red-100 text-red-500"
           onClick={() => onDelete(item)}
         >
-          删除
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>
   )
 }
-
