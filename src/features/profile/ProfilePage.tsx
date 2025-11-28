@@ -112,35 +112,35 @@ export const ProfilePage = () => {
     if (!confirmed) return
 
     setLoading(true)
-    try {
-      // 1. 退出 Supabase 认证（如果已配置）
-      if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.auth.signOut()
-        if (error) {
-          console.error('Sign out error:', error)
-          // 即使 signOut 失败，也继续清理本地数据
-        }
-      }
-
-      // 2. 清理本地存储
-      try {
-        localStorage.clear()
-        sessionStorage.clear()
-      } catch (e) {
-        console.error('Clear storage error:', e)
-      }
-
-      // 3. 直接跳转到登录页（使用 window.location 确保完全重置）
-      // 不等待，直接跳转，让页面完全重新加载
-      window.location.href = window.location.origin + '/login'
-    } catch (err) {
-      console.error('Sign out error:', err)
-      // 即使出错也尝试跳转
+    
+    // 无论后续步骤成功与否，都要确保清理和跳转
+    const forceLogout = () => {
       try {
         localStorage.clear()
         sessionStorage.clear()
       } catch {}
+      // 使用 window.location.href 强制刷新跳转，清除内存中的 React 状态
       window.location.href = window.location.origin + '/login'
+    }
+
+    try {
+      // 1. 尝试退出 Supabase 认证
+      if (isSupabaseConfigured && supabase) {
+        // 设置一个超时，防止 signOut 卡死（例如网络不通时）
+        const signOutPromise = supabase.auth.signOut()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Sign out timeout')), 3000)
+        )
+        
+        await Promise.race([signOutPromise, timeoutPromise]).catch(err => {
+          console.warn('Supabase sign out failed or timed out:', err)
+        })
+      }
+    } catch (err) {
+      console.error('Sign out process error:', err)
+    } finally {
+      // 2. 最终强制执行清理和跳转
+      forceLogout()
     }
   }
 
@@ -511,6 +511,15 @@ export const ProfilePage = () => {
           )}
         </section>
       )}
+
+      {/* 调试信息（仅开发/调试用） */}
+      <section className="rounded-[24px] bg-gray-100 p-4 text-xs text-gray-500">
+        <p className="font-bold mb-2">系统状态诊断</p>
+        <p>Supabase 连接: {isSupabaseConfigured ? '✅ 已配置' : '❌ 未配置'}</p>
+        <p>当前家庭 ID: {household?.id || '无'}</p>
+        <p>用户 ID: {userId || '未登录'}</p>
+        <p>离线模式: {localStorage.getItem('offlineMode') === '1' ? '是' : '否'}</p>
+      </section>
 
       {/* 切换家庭 */}
       {households.length > 1 && (
