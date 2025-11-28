@@ -20,7 +20,7 @@ const variantStyles: Record<ButtonVariant, string> = {
 }
 
 const sizeStyles: Record<ButtonSize, string> = {
-  md: 'h-11 px-4 text-base',
+  md: 'h-12 px-5 text-base',
   sm: 'h-9 px-3 text-sm',
 }
 
@@ -33,7 +33,7 @@ export const Button = ({
 }: ButtonProps) => (
   <button
     className={clsx(
-      'rounded-full font-semibold transition-all duration-150',
+      'inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-150',
       variantStyles[variant],
       sizeStyles[size],
       fullWidth && 'w-full',
@@ -43,4 +43,3 @@ export const Button = ({
     {...rest}
   />
 )
-

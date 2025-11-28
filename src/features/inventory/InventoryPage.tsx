@@ -276,7 +276,7 @@ export const InventoryPage = () => {
               <Button type="submit" fullWidth disabled={saving} className="btn-press">
                 {saving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                     保存中...
                   </>
                 ) : (

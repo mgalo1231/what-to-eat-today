@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete'
 
 type ShoppingFormState = {
   name: string
@@ -98,6 +99,11 @@ export const ShoppingListPage = () => {
     showToast('已购商品已清空', 'success')
   }
 
+  const deleteItem = async (item: ShoppingListItem) => {
+    await shoppingRepository.remove(item.id)
+    showToast(`${item.name} 已删除`, 'success')
+  }
+
   const pending = shoppingList?.filter((item) => !item.isBought) ?? []
   const completed = shoppingList?.filter((item) => item.isBought) ?? []
 
@@ -130,34 +136,34 @@ export const ShoppingListPage = () => {
       <section className="space-y-3 rounded-[24px] bg-white p-4 shadow-card">
         <h2 className="text-lg font-semibold">马上要买</h2>
         <div className="space-y-2">
+          <p className="text-xs text-ios-muted">← 左滑可删除</p>
           {pending.map((item) => (
-            <label
-              key={item.id}
-              className="card-press flex items-center gap-3 rounded-[18px] border border-ios-border px-3 py-2 cursor-pointer"
-            >
-              <div
-                className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
-                  item.isBought
-                    ? 'border-ios-primary bg-ios-primary'
-                    : 'border-ios-muted'
-                }`}
-                onClick={(e) => {
-                  e.preventDefault()
-                  toggleItem(item)
-                }}
-              >
-                {item.isBought && <Check className="h-4 w-4 text-white" />}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold">{item.name}</p>
-                <p className="text-xs text-ios-muted">
-                  {item.quantity}
-                  {item.unit}
-                  {item.sourceRecipeId &&
-                    ` · 来自 ${recipeMap.get(item.sourceRecipeId) ?? '菜谱'}`}
-                </p>
-              </div>
-            </label>
+            <SwipeToDelete key={item.id} onDelete={() => deleteItem(item)}>
+              <label className="flex items-center gap-3 border border-ios-border px-3 py-2 cursor-pointer rounded-[18px]">
+                <div
+                  className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
+                    item.isBought
+                      ? 'border-ios-primary bg-ios-primary'
+                      : 'border-ios-muted'
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    toggleItem(item)
+                  }}
+                >
+                  {item.isBought && <Check className="h-4 w-4 text-white" />}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold">{item.name}</p>
+                  <p className="text-xs text-ios-muted">
+                    {item.quantity}
+                    {item.unit}
+                    {item.sourceRecipeId &&
+                      ` · 来自 ${recipeMap.get(item.sourceRecipeId) ?? '菜谱'}`}
+                  </p>
+                </div>
+              </label>
+            </SwipeToDelete>
           ))}
           {pending.length === 0 && (
             <div className="rounded-[18px] border border-dashed border-ios-border px-3 py-8 text-center text-ios-muted">
@@ -236,7 +242,7 @@ export const ShoppingListPage = () => {
             />
           </div>
           <Button type="submit" fullWidth className="btn-press">
-            <ShoppingBasket className="mr-2 h-4 w-4" />
+            <ShoppingBasket className="h-5 w-5" />
             添加到清单
           </Button>
         </form>

@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['pwa-icon.svg'],
+      includeAssets: ['icon.png', 'icon.svg'],
       manifest: {
         name: '今天吃什么',
         short_name: '今天吃什么',
@@ -23,10 +23,16 @@ export default defineConfig({
         background_color: '#f2f2f7',
         icons: [
           {
-            src: '/pwa-icon.svg',
+            src: '/icon.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

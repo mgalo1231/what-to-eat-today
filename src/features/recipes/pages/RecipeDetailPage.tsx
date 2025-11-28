@@ -128,7 +128,7 @@ export const RecipeDetailPage = () => {
       </header>
       <div className="space-y-3">
         <Button fullWidth onClick={() => navigate(`/chat/${recipe.id}`)} className="btn-press">
-          <Sparkles className="mr-2 h-4 w-4" />
+          <Sparkles className="h-5 w-5" />
           问机器人：这道菜还能怎么做？
         </Button>
         <Button
@@ -139,9 +139,9 @@ export const RecipeDetailPage = () => {
           className="btn-press"
         >
           {generating ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <ShoppingCart className="mr-2 h-4 w-4" />
+            <ShoppingCart className="h-5 w-5" />
           )}
           {generating ? '生成中...' : '生成购物清单'}
         </Button>
@@ -258,7 +258,7 @@ export const RecipeDetailPage = () => {
       >
         {deleting ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
             删除中...
           </>
         ) : (

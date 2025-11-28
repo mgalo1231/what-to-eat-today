@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
-import { ChefHat, Mail, ArrowRight } from 'lucide-react'
+import { Mail, ArrowRight } from 'lucide-react'
 
 export const LoginPage = () => {
   const navigate = useNavigate()
@@ -61,9 +61,11 @@ export const LoginPage = () => {
         {/* 顶部装饰 */}
         <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
           {/* Logo */}
-          <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-ios-primary to-ios-secondary shadow-lg">
-            <ChefHat className="h-12 w-12 text-white" />
-          </div>
+          <img 
+            src="/icon.png" 
+            alt="今天吃什么" 
+            className="mb-8 h-28 w-28 rounded-[28px] shadow-lg"
+          />
 
 <h1 className="mb-2 text-3xl font-bold text-ios-text">今天吃什么</h1>
         <p className="mb-8 text-center text-ios-muted">
