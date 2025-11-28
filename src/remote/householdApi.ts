@@ -40,7 +40,7 @@ export const getMyHouseholds = async (userId: string): Promise<Household[]> => {
 export const createHousehold = async (
   userId: string,
   name: string,
-  displayName?: string,
+  _displayName?: string, // 暂时未使用，保留以保持 API 兼容性
 ): Promise<Household> => {
   const sb = ensure()
 
@@ -56,11 +56,13 @@ export const createHousehold = async (
   }
 
   // 2. 将用户加入为 owner
+  // 注意：如果 members 表没有 display_name 字段，请确保执行了正确的 SQL 建表脚本
   const { error: mError } = await sb.from('members').insert({
     user_id: userId,
     household_id: household.id,
-    display_name: displayName || null,
     role: 'owner',
+    // display_name 字段是可选的，如果表中有该字段可以添加：
+    // display_name: displayName || null,
   })
 
   if (mError) {
@@ -83,7 +85,7 @@ export const createHousehold = async (
 export const joinHouseholdByCode = async (
   userId: string,
   inviteCode: string,
-  displayName?: string,
+  _displayName?: string, // 暂时未使用，保留以保持 API 兼容性
 ): Promise<Household> => {
   const sb = ensure()
 
@@ -117,11 +119,13 @@ export const joinHouseholdByCode = async (
   }
 
   // 3. 加入家庭
+  // 注意：如果 members 表没有 display_name 字段，请确保执行了正确的 SQL 建表脚本
   const { error: mError } = await sb.from('members').insert({
     user_id: userId,
     household_id: household.id,
-    display_name: displayName || null,
     role: 'member',
+    // display_name 字段是可选的，如果表中有该字段可以添加：
+    // display_name: displayName || null,
   })
 
   if (mError) {
