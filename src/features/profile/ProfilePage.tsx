@@ -19,6 +19,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { getHouseholdMembers } from '@/remote/householdApi'
 import type { HouseholdMember } from '@/types/entities'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 export const ProfilePage = () => {
   const navigate = useNavigate()
@@ -42,6 +43,7 @@ export const ProfilePage = () => {
   const [showMembers, setShowMembers] = useState(false)
   const [loadingMembers, setLoadingMembers] = useState(false)
   const { showToast } = useToast()
+  const { confirm } = useConfirm()
 
   // 获取家庭成员列表
   useEffect(() => {
@@ -91,13 +93,57 @@ export const ProfilePage = () => {
   }
 
   const handleSignOut = async () => {
-    if (!isSupabaseConfigured || !supabase) return
-    await supabase.auth.signOut()
+    // 确认对话框
+    const confirmed = await confirm({
+      title: '退出登录',
+      message: '确定要退出登录吗？退出后需要重新登录才能使用云端同步功能。',
+      confirmText: '退出',
+      danger: true,
+    })
+
+    if (!confirmed) return
+
+    if (!isSupabaseConfigured || !supabase) {
+      // 离线模式，直接清理本地数据并跳转
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch {}
+      navigate('/login', { replace: true })
+      window.location.reload() // 强制刷新确保状态重置
+      return
+    }
+
+    setLoading(true)
     try {
-      localStorage.removeItem('offline')
-      localStorage.removeItem('offlineMode')
-    } catch {}
-    navigate('/login')
+      // 1. 退出 Supabase 认证
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Sign out error:', error)
+        showToast('退出登录失败，请重试', 'error')
+        setLoading(false)
+        return
+      }
+
+      // 2. 清理本地存储
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch (e) {
+        console.error('Clear storage error:', e)
+      }
+
+      // 3. 等待一下确保状态更新
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // 4. 跳转到登录页并强制刷新
+      navigate('/login', { replace: true })
+      window.location.reload() // 强制刷新确保所有状态重置
+    } catch (err) {
+      console.error('Sign out error:', err)
+      showToast('退出登录失败，请重试', 'error')
+      setLoading(false)
+    }
   }
 
   const handleCreateHousehold = async (e: FormEvent) => {
@@ -459,10 +505,20 @@ export const ProfilePage = () => {
       {userId && (
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center justify-center gap-2 rounded-[20px] border border-ios-danger/30 bg-ios-danger/5 py-4 font-semibold text-ios-danger"
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-[20px] border border-ios-danger/30 bg-ios-danger/5 py-4 font-semibold text-ios-danger disabled:opacity-50"
         >
-          <LogOut className="h-5 w-5" />
-          退出登录
+          {loading ? (
+            <>
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-ios-danger border-t-transparent" />
+              退出中...
+            </>
+          ) : (
+            <>
+              <LogOut className="h-5 w-5" />
+              退出登录
+            </>
+          )}
         </button>
       )}
     </div>
