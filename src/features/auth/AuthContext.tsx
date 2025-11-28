@@ -13,12 +13,15 @@ import {
   getMyHouseholds,
   createHousehold as apiCreateHousehold,
   joinHouseholdByCode as apiJoinByCode,
+  updateHousehold as apiUpdateHousehold,
   deleteHousehold as apiDeleteHousehold,
 } from '@/remote/householdApi'
+import { getUserProfile, upsertUserProfile } from '@/remote/userProfileApi'
 import type { Household } from '@/types/entities'
 
 export type AuthState = {
   userId?: string
+  username?: string
   householdId?: string
   household?: Household
   households: Household[]
@@ -26,6 +29,7 @@ export type AuthState = {
   // actions
   switchHousehold: (id: string) => void
   createHousehold: (name: string, displayName?: string) => Promise<Household>
+  updateHousehold: (id: string, name: string) => Promise<Household>
   joinHousehold: (inviteCode: string, displayName?: string) => Promise<Household>
   deleteHousehold: (id: string) => Promise<void>
   refreshHouseholds: () => Promise<void>
@@ -35,12 +39,16 @@ const LOCAL_HOUSEHOLD_ID = 'local-family'
 
 const AuthContext = createContext<AuthState>({
   userId: undefined,
+  username: undefined,
   householdId: undefined,
   household: undefined,
   households: [],
   loading: false,
   switchHousehold: () => {},
   createHousehold: async () => {
+    throw new Error('Not implemented')
+  },
+  updateHousehold: async () => {
     throw new Error('Not implemented')
   },
   joinHousehold: async () => {
@@ -56,6 +64,7 @@ export const useAuth = () => useContext(AuthContext)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userId, setUserId] = useState<string | undefined>(undefined)
+  const [username, setUsername] = useState<string | undefined>(undefined)
   const [households, setHouseholds] = useState<Household[]>([])
   const [currentHouseholdId, setCurrentHouseholdId] = useState<string | undefined>(
     undefined,
@@ -113,6 +122,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [userId],
   )
 
+  // 更新家庭名称
+  const updateHousehold = useCallback(
+    async (id: string, name: string) => {
+      if (!userId) throw new Error('Not logged in')
+      const updated = await apiUpdateHousehold(userId, id, name)
+      setHouseholds((prev) =>
+        prev.map((h) => (h.id === id ? updated : h)),
+      )
+      // 如果更新的是当前家庭，更新 currentHousehold
+      if (currentHouseholdId === id) {
+        // currentHousehold 是通过 useMemo 计算的，会自动更新
+      }
+      return updated
+    },
+    [userId, currentHouseholdId],
+  )
+
   // 加入家庭
   const joinHousehold = useCallback(
     async (inviteCode: string, displayName?: string) => {
@@ -136,24 +162,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (id: string) => {
       if (!userId) throw new Error('Not logged in')
       await apiDeleteHousehold(userId, id)
-      // 从列表中移除
-      setHouseholds((prev) => {
-        const remaining = prev.filter((h) => h.id !== id)
-        // 如果删除的是当前家庭，切换到其他家庭或回到个人模式
-        if (currentHouseholdId === id) {
-          if (remaining.length > 0) {
-            setCurrentHouseholdId(remaining[0].id)
-            setDbHouseholdId(remaining[0].id)
-            pullAllToDexie(remaining[0].id)
-          } else {
-            setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
-            setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
-          }
+      // 从数据库中重新获取家庭列表，确保状态同步
+      await refreshHouseholds()
+      // 如果删除的是当前家庭，切换到其他家庭或回到个人模式
+      if (currentHouseholdId === id) {
+        const updatedList = await getMyHouseholds(userId)
+        if (updatedList.length > 0) {
+          setCurrentHouseholdId(updatedList[0].id)
+          setDbHouseholdId(updatedList[0].id)
+          pullAllToDexie(updatedList[0].id)
+        } else {
+          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
         }
-        return remaining
-      })
+      }
     },
-    [userId, currentHouseholdId],
+    [userId, currentHouseholdId, refreshHouseholds],
   )
 
   const getOrCreateHouseholds = useCallback(
@@ -187,6 +211,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserId(uid)
 
       if (uid) {
+        // 检查是否有待保存的用户名（注册时保存失败的）
+        try {
+          const pendingUsername = localStorage.getItem('pending_username')
+          const pendingUserId = localStorage.getItem('pending_user_id')
+          if (pendingUsername && pendingUserId === uid) {
+            // 尝试保存待保存的用户名
+            try {
+              await upsertUserProfile(uid, pendingUsername)
+              localStorage.removeItem('pending_username')
+              localStorage.removeItem('pending_user_id')
+            } catch (e) {
+              console.error('Failed to save pending username', e)
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check pending username', e)
+        }
+
+        // 获取用户名
+        try {
+          const profile = await getUserProfile(uid)
+          if (!mounted) return
+          setUsername(profile?.username)
+        } catch (e) {
+          console.error('Failed to get user profile', e)
+        }
+
         const list = await getOrCreateHouseholds(uid)
         if (!mounted) return
         setHouseholds(list)
@@ -201,6 +252,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         // 未登录，使用本地家庭
+        setUsername(undefined)
         setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
         setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
       }
@@ -211,6 +263,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const uid = session?.user?.id
       setUserId(uid)
       if (uid) {
+        // 检查是否有待保存的用户名（注册时保存失败的）
+        try {
+          const pendingUsername = localStorage.getItem('pending_username')
+          const pendingUserId = localStorage.getItem('pending_user_id')
+          if (pendingUsername && pendingUserId === uid) {
+            // 尝试保存待保存的用户名
+            try {
+              await upsertUserProfile(uid, pendingUsername)
+              localStorage.removeItem('pending_username')
+              localStorage.removeItem('pending_user_id')
+            } catch (e) {
+              console.error('Failed to save pending username', e)
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check pending username', e)
+        }
+
+        // 获取用户名
+        try {
+          const profile = await getUserProfile(uid)
+          setUsername(profile?.username)
+        } catch (e) {
+          console.error('Failed to get user profile', e)
+        }
+
         const list = await getOrCreateHouseholds(uid)
         setHouseholds(list)
         if (list.length > 0) {
@@ -222,11 +300,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
           setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
         }
-      } else {
-        setHouseholds([])
-        setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
-        setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
-      }
+        } else {
+          setUsername(undefined)
+          setHouseholds([])
+          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
+        }
     })
 
     return () => {
@@ -238,24 +317,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const value = useMemo<AuthState>(
     () => ({
       userId,
+      username,
       householdId: currentHouseholdId,
       household: currentHousehold,
       households,
       loading,
       switchHousehold,
       createHousehold,
+      updateHousehold,
       joinHousehold,
       deleteHousehold,
       refreshHouseholds,
     }),
     [
       userId,
+      username,
       currentHouseholdId,
       currentHousehold,
       households,
       loading,
       switchHousehold,
       createHousehold,
+      updateHousehold,
       joinHousehold,
       deleteHousehold,
       refreshHouseholds,

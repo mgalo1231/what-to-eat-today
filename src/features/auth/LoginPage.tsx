@@ -3,7 +3,8 @@ import type { FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
-import { Mail, ArrowRight } from 'lucide-react'
+import { upsertUserProfile } from '@/remote/userProfileApi'
+import { Mail, ArrowRight, User } from 'lucide-react'
 
 export const LoginPage = () => {
   const navigate = useNavigate()
@@ -12,6 +13,7 @@ export const LoginPage = () => {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('')
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [status, setStatus] = useState<string>('')
   const [sending, setSending] = useState(false)
@@ -46,13 +48,60 @@ export const LoginPage = () => {
         setStatus('登录成功，正在进入...')
         navigate('/today', { replace: true })
       } else {
-        const { error } = await supabase.auth.signUp({
+        // 注册时验证用户名
+        const trimmedUsername = username.trim()
+        if (!trimmedUsername) {
+          setStatus('请输入用户名')
+          return
+        }
+        if (trimmedUsername.length < 2 || trimmedUsername.length > 20) {
+          setStatus('用户名长度应在 2-20 个字符之间')
+          return
+        }
+
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         })
         if (error) throw error
-        setStatus('注册成功，如需邮箱验证请前往邮箱完成验证。')
+
+        // 如果注册成功且有用户 ID，保存用户名
+        if (data.user?.id) {
+          try {
+            // 等待一下，确保 session 建立
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            
+            // 再次检查 session
+            const { data: sessionData } = await supabase.auth.getSession()
+            if (sessionData.session) {
+              // Session 已建立，可以保存用户名
+              await upsertUserProfile(data.user.id, trimmedUsername)
+              setStatus('注册成功！用户名已保存。如需邮箱验证请前往邮箱完成验证。')
+            } else {
+              // Session 未建立（可能需要邮箱验证），先保存用户名到 localStorage，等登录后再保存
+              try {
+                localStorage.setItem('pending_username', trimmedUsername)
+                localStorage.setItem('pending_user_id', data.user.id)
+                setStatus('注册成功！请在邮箱中完成验证后登录，用户名将在登录时自动保存。')
+              } catch (e) {
+                setStatus('注册成功，但无法保存用户名。请在登录后到个人资料页面设置用户名。')
+              }
+            }
+          } catch (profileError) {
+            console.error('Failed to save username', profileError)
+            // 如果保存失败，先存到 localStorage，等登录后再保存
+            try {
+              localStorage.setItem('pending_username', trimmedUsername)
+              localStorage.setItem('pending_user_id', data.user.id)
+              setStatus('注册成功！用户名将在登录时自动保存。如需邮箱验证请前往邮箱完成验证。')
+            } catch (e) {
+              setStatus(`注册成功，但保存用户名失败：${(profileError as Error).message}。请在登录后到个人资料页面设置用户名。`)
+            }
+          }
+        } else {
+          setStatus('注册成功，如需邮箱验证请前往邮箱完成验证。')
+        }
       }
     } catch (err) {
       setStatus(`失败：${(err as Error).message}`)
@@ -107,20 +156,41 @@ export const LoginPage = () => {
               <button
                 type="button"
                 className={`btn-press rounded-full px-4 py-1 ${authMode === 'login' ? 'bg-ios-primary text-white' : 'bg-white text-ios-text border border-ios-border'}`}
-                onClick={() => setAuthMode('login')}
+                onClick={() => {
+                  setAuthMode('login')
+                  setUsername('')
+                }}
               >
                 账号登录
               </button>
               <button
                 type="button"
                 className={`btn-press rounded-full px-4 py-1 ${authMode === 'signup' ? 'bg-ios-primary text-white' : 'bg-white text-ios-text border border-ios-border'}`}
-                onClick={() => setAuthMode('signup')}
+                onClick={() => {
+                  setAuthMode('signup')
+                  setUsername('')
+                }}
               >
                 注册新账号
               </button>
             </div>
 
             <form onSubmit={handleEmailPassword} className="space-y-3">
+              {authMode === 'signup' && (
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ios-muted" />
+                  <input
+                    required={authMode === 'signup'}
+                    type="text"
+                    placeholder="输入用户名（2-20个字符）"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    minLength={2}
+                    maxLength={20}
+                    className="w-full rounded-2xl border border-ios-border bg-white py-4 pl-12 pr-4 text-lg focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
+                  />
+                </div>
+              )}
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ios-muted" />
                 <input

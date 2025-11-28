@@ -12,6 +12,8 @@ import {
   Share2,
   X,
   Trash2,
+  Edit2,
+  Save,
 } from 'lucide-react'
 import type { FormEvent } from 'react'
 
@@ -26,10 +28,12 @@ export const ProfilePage = () => {
   const navigate = useNavigate()
   const {
     userId,
+    username,
     household,
     households,
     switchHousehold,
     createHousehold,
+    updateHousehold,
     joinHousehold,
     deleteHousehold,
   } = useAuth()
@@ -44,6 +48,8 @@ export const ProfilePage = () => {
   const [members, setMembers] = useState<HouseholdMember[]>([])
   const [showMembers, setShowMembers] = useState(false)
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [editingHouseholdName, setEditingHouseholdName] = useState(false)
+  const [householdNameInput, setHouseholdNameInput] = useState('')
   const { showToast } = useToast()
   const { confirm } = useConfirm()
 
@@ -235,6 +241,52 @@ export const ProfilePage = () => {
     return false
   }
 
+  const handleEditHouseholdName = () => {
+    if (household) {
+      setHouseholdNameInput(household.name)
+      setEditingHouseholdName(true)
+    }
+  }
+
+  const handleSaveHouseholdName = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!household) return
+
+    const trimmedName = householdNameInput.trim()
+    if (!trimmedName) {
+      showToast('家庭名称不能为空', 'error')
+      return
+    }
+
+    if (trimmedName === household.name) {
+      setEditingHouseholdName(false)
+      return
+    }
+
+    setLoading(true)
+    try {
+      await updateHousehold(household.id, trimmedName)
+      showToast('家庭名称已更新', 'success')
+      setEditingHouseholdName(false)
+    } catch (err) {
+      const error = err as Error
+      let message = '更新失败'
+      if (error.message.includes('只有创建者')) {
+        message = '只有创建者可以修改家庭名称'
+      } else {
+        message = `更新失败：${error.message}`
+      }
+      showToast(message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancelEditHouseholdName = () => {
+    setEditingHouseholdName(false)
+    setHouseholdNameInput('')
+  }
+
   const handleDeleteHousehold = async (householdId: string, householdName: string) => {
     const confirmed = await confirm({
       title: '删除家庭',
@@ -298,7 +350,7 @@ export const ProfilePage = () => {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-semibold">
-            {userId ? '已登录' : '未登录'}
+            {userId ? (username || '已登录') : '未登录'}
           </h1>
           {userId ? (
             household && (
@@ -321,16 +373,60 @@ export const ProfilePage = () => {
               <Users className="h-5 w-5" />
               <h2 className="font-semibold">当前家庭</h2>
             </div>
-            {members.length > 0 && (
-              <button
-                onClick={() => setShowMembers(!showMembers)}
-                className="text-sm text-white/80 underline"
-              >
-                {showMembers ? '收起' : `${members.length} 位成员`}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isOwner(household.id) && !editingHouseholdName && (
+                <button
+                  onClick={handleEditHouseholdName}
+                  className="rounded-full bg-white/20 p-2 transition-all hover:bg-white/30"
+                  title="编辑家庭名称"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              )}
+              {members.length > 0 && (
+                <button
+                  onClick={() => setShowMembers(!showMembers)}
+                  className="text-sm text-white/80 underline"
+                >
+                  {showMembers ? '收起' : `${members.length} 位成员`}
+                </button>
+              )}
+            </div>
           </div>
-          <p className="text-2xl font-bold">{household.name}</p>
+          {editingHouseholdName && isOwner(household.id) ? (
+            <form onSubmit={handleSaveHouseholdName} className="space-y-2">
+              <input
+                type="text"
+                value={householdNameInput}
+                onChange={(e) => setHouseholdNameInput(e.target.value)}
+                className="w-full rounded-xl border border-white/30 bg-white/20 px-4 py-2 text-2xl font-bold text-white placeholder-white/50 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
+                placeholder="输入家庭名称"
+                autoFocus
+                disabled={loading}
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={loading || !householdNameInput.trim()}
+                  className="flex items-center gap-2 rounded-xl bg-white/20 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/30 disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  {loading ? '保存中...' : '保存'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelEditHouseholdName}
+                  disabled={loading}
+                  className="flex items-center gap-2 rounded-xl bg-white/20 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/30 disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                  取消
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-2xl font-bold">{household.name}</p>
+          )}
 
           {/* 邀请码区域 - 更醒目 */}
           <div className="space-y-2 rounded-2xl bg-white/10 p-3 backdrop-blur-sm">

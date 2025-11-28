@@ -217,6 +217,143 @@ npm run dev
 
 如果你的项目使用 `public` schema，执行以下 SQL：
 
+**⚠️ 重要：请按顺序执行，先创建表，再创建策略！**
+
+### 快速复制（完整 SQL，一次性执行）
+
+```sql
+-- ========================================
+-- 完整配置：表 + RLS + 策略（public schema）
+-- ========================================
+
+-- 1. 创建表
+create table if not exists public.households (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  invite_code text unique default substr(md5(random()::text), 1, 6),
+  owner_id uuid not null default auth.uid(),
+  created_at timestamptz default now()
+);
+
+create table if not exists public.members (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  household_id uuid not null references public.households(id) on delete cascade,
+  display_name text,
+  role text not null default 'member',
+  created_at timestamptz default now(),
+  unique(user_id, household_id)
+);
+
+create table if not exists public.recipes (
+  id text primary key,
+  household_id uuid not null references public.households(id) on delete cascade,
+  title text not null,
+  description text,
+  duration int not null,
+  difficulty text not null,
+  tags jsonb not null default '[]',
+  servings int,
+  ingredients jsonb not null default '[]',
+  steps jsonb not null default '[]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.inventory (
+  id text primary key,
+  household_id uuid not null references public.households(id) on delete cascade,
+  name text not null,
+  quantity double precision not null,
+  unit text not null,
+  location text not null,
+  expiry_date timestamptz,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.shopping_list (
+  id text primary key,
+  household_id uuid not null references public.households(id) on delete cascade,
+  name text not null,
+  quantity double precision not null,
+  unit text not null,
+  is_bought boolean not null default false,
+  source_recipe_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.chat_logs (
+  id text primary key,
+  household_id uuid not null references public.households(id) on delete cascade,
+  recipe_id text,
+  title text not null,
+  messages jsonb not null default '[]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- 2. 开启 RLS
+alter table public.households enable row level security;
+alter table public.members enable row level security;
+alter table public.recipes enable row level security;
+alter table public.inventory enable row level security;
+alter table public.shopping_list enable row level security;
+alter table public.chat_logs enable row level security;
+
+-- 3. 辅助函数
+create or replace function public.my_household_ids()
+returns setof uuid
+language sql
+security definer
+stable
+as $$
+  select household_id from public.members where user_id = auth.uid();
+$$;
+
+-- 4. RLS 策略
+drop policy if exists "Users can view their households" on public.households;
+drop policy if exists "Users can insert households" on public.households;
+create policy "Users can view their households" on public.households for select
+using (auth.uid() = owner_id or id in (select public.my_household_ids()));
+create policy "Users can insert households" on public.households for insert
+with check (auth.uid() = owner_id);
+
+drop policy if exists "Users can insert themselves as members" on public.members;
+drop policy if exists "Users can view household members" on public.members;
+drop policy if exists "Users can update household members" on public.members;
+drop policy if exists "Users can delete household members" on public.members;
+create policy "Users can insert themselves as members" on public.members for insert
+with check (user_id = auth.uid());
+create policy "Users can view household members" on public.members for select
+using (user_id = auth.uid() or household_id in (select public.my_household_ids()));
+create policy "Users can update household members" on public.members for update
+using (household_id in (select public.my_household_ids()));
+create policy "Users can delete household members" on public.members for delete
+using (household_id in (select public.my_household_ids()));
+
+drop policy if exists "Access recipes" on public.recipes;
+drop policy if exists "Access inventory" on public.inventory;
+drop policy if exists "Access shopping_list" on public.shopping_list;
+drop policy if exists "Access chat_logs" on public.chat_logs;
+create policy "Access recipes" on public.recipes for all
+using (household_id in (select public.my_household_ids()));
+create policy "Access inventory" on public.inventory for all
+using (household_id in (select public.my_household_ids()));
+create policy "Access shopping_list" on public.shopping_list for all
+using (household_id in (select public.my_household_ids()));
+create policy "Access chat_logs" on public.chat_logs for all
+using (household_id in (select public.my_household_ids()));
+```
+
+---
+
+### 详细版本（分步骤说明）
+
+如果你的项目使用 `public` schema，执行以下 SQL：
+
 ```sql
 -- ========================================
 -- 1. 创建表（public schema）
