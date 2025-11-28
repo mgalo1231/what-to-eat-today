@@ -45,6 +45,10 @@ export const ProfilePage = () => {
   const handleSignOut = async () => {
     if (!isSupabaseConfigured || !supabase) return
     await supabase.auth.signOut()
+    try {
+      localStorage.removeItem('offline')
+      localStorage.removeItem('offlineMode')
+    } catch {}
     navigate('/login')
   }
 
@@ -271,8 +275,9 @@ export const ProfilePage = () => {
 
       {/* 没有家庭时的提示 */}
       {userId && households.length === 0 && (
-        <div className="rounded-[20px] border border-dashed border-ios-border p-4 text-center text-sm text-ios-muted">
-          你还没有加入任何家庭，请先创建或加入一个家庭
+        <div className="space-y-2 rounded-[20px] border border-dashed border-ios-border p-4 text-center text-sm text-ios-muted">
+          <p className="font-medium">当前使用个人模式</p>
+          <p>数据保存在本地。创建或加入家庭后，可与家人共享菜谱和购物清单。</p>
         </div>
       )}
 

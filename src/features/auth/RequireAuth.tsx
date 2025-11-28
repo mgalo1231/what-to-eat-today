@@ -7,7 +7,7 @@ type Props = {
 }
 
 export const RequireAuth = ({ children }: Props) => {
-  const { userId, loading, householdId } = useAuth()
+  const { userId, loading } = useAuth()
   const location = useLocation()
 
   // 如果没配置 Supabase 或者开启了离线模式，直接放行
@@ -36,10 +36,8 @@ export const RequireAuth = ({ children }: Props) => {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // 已登录但没有家庭，跳转到个人页面创建/加入家庭
-  if (!householdId && location.pathname !== '/profile') {
-    return <Navigate to="/profile" replace />
-  }
+  // 已登录但没有家庭，使用个人模式（不强制跳转）
+  // 用户可以继续使用，数据存本地，随时可以去 Profile 创建/加入家庭
 
   return <>{children}</>
 }

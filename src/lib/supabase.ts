@@ -5,7 +5,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as
   | string
   | undefined
 export const supabaseSchema =
-  (import.meta.env.VITE_SUPABASE_SCHEMA as string | undefined) ?? 'menuapp'
+  (import.meta.env.VITE_SUPABASE_SCHEMA as string | undefined) ?? 'public'
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 

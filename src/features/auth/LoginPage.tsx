@@ -39,6 +39,10 @@ export const LoginPage = () => {
           password,
         })
         if (error) throw error
+        try {
+          localStorage.removeItem('offline')
+          localStorage.removeItem('offlineMode')
+        } catch {}
         setStatus('登录成功，正在进入...')
         navigate('/today', { replace: true })
       } else {

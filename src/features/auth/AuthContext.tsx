@@ -126,6 +126,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [userId],
   )
 
+  const getOrCreateHouseholds = useCallback(
+    async (uid: string) => {
+      let list = await getMyHouseholds(uid)
+      if (list.length === 0) {
+        const defaultName = '我的家庭'
+        const created = await apiCreateHousehold(uid, defaultName)
+        list = [created]
+      }
+      return list
+    },
+    [],
+  )
+
   // 初始化：获取 session 和家庭列表
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -144,13 +157,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserId(uid)
 
       if (uid) {
-        const list = await getMyHouseholds(uid)
+        const list = await getOrCreateHouseholds(uid)
         if (!mounted) return
         setHouseholds(list)
         if (list.length > 0) {
           setCurrentHouseholdId(list[0].id)
           setDbHouseholdId(list[0].id)
           pullAllToDexie(list[0].id)
+        } else {
+          // 已登录但没有家庭，使用个人模式（本地存储）
+          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
         }
       } else {
         // 未登录，使用本地家庭
@@ -164,14 +181,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const uid = session?.user?.id
       setUserId(uid)
       if (uid) {
-        const list = await getMyHouseholds(uid)
+        const list = await getOrCreateHouseholds(uid)
         setHouseholds(list)
         if (list.length > 0) {
           setCurrentHouseholdId(list[0].id)
           setDbHouseholdId(list[0].id)
           pullAllToDexie(list[0].id)
         } else {
-          setCurrentHouseholdId(undefined)
+          // 已登录但没有家庭，使用个人模式
+          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
         }
       } else {
         setHouseholds([])
@@ -184,7 +203,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       mounted = false
       sub.subscription.unsubscribe()
     }
-  }, [])
+  }, [getOrCreateHouseholds])
 
   const value = useMemo<AuthState>(
     () => ({
