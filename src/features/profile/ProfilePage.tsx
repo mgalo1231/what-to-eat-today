@@ -177,8 +177,8 @@ export const ProfilePage = () => {
       showToast('请输入邀请码', 'error')
       return
     }
-    if (code.length !== 8) {
-      showToast('邀请码应为 8 位字符', 'error')
+    if (code.length !== 6) {
+      showToast('邀请码应为 6 位字符', 'error')
       return
     }
     setLoading(true)
@@ -210,9 +210,9 @@ export const ProfilePage = () => {
 
   const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toLowerCase().replace(/\s/g, '')
-    // 限制为 8 位
-    if (value.length > 8) {
-      value = value.slice(0, 8)
+    // 限制为 6 位
+    if (value.length > 6) {
+      value = value.slice(0, 6)
     }
     setInviteCode(value)
   }
@@ -514,15 +514,15 @@ export const ProfilePage = () => {
             <div className="space-y-1">
               <input
                 type="text"
-                placeholder="请输入 8 位邀请码"
+                placeholder="请输入 6 位邀请码"
                 value={inviteCode}
                 onChange={handleInviteCodeChange}
-                maxLength={8}
+                maxLength={6}
                 className="w-full rounded-2xl border border-ios-border px-4 py-3 font-mono text-center text-lg tracking-wider focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
                 autoFocus
               />
               <p className="text-xs text-ios-muted">
-                {inviteCode.length}/8 位
+                {inviteCode.length}/6 位
               </p>
             </div>
             <div className="flex gap-2">
@@ -539,7 +539,7 @@ export const ProfilePage = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading || inviteCode.length !== 8}
+                disabled={loading || inviteCode.length !== 6}
                 className="flex-1 rounded-full bg-ios-primary py-2 font-medium text-white disabled:opacity-50"
               >
                 {loading ? '加入中...' : '加入'}

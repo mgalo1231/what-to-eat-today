@@ -28,7 +28,7 @@ grant usage on schema menuapp to postgres, anon, authenticated, service_role;
 create table if not exists menuapp.households (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  invite_code text unique default substr(md5(random()::text), 1, 8),
+  invite_code text unique default substr(md5(random()::text), 1, 6),
   created_at timestamptz default now()
 );
 
@@ -224,7 +224,7 @@ npm run dev
 create table if not exists public.households (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  invite_code text unique default substr(md5(random()::text), 1, 8),
+  invite_code text unique default substr(md5(random()::text), 1, 6),
   owner_id uuid not null default auth.uid(),
   created_at timestamptz default now()
 );
