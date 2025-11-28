@@ -182,13 +182,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const getOrCreateHouseholds = useCallback(
     async (uid: string) => {
-      let list = await getMyHouseholds(uid)
-      if (list.length === 0) {
-        const defaultName = '我的家庭'
-        const created = await apiCreateHousehold(uid, defaultName)
-        list = [created]
+      try {
+        let list = await getMyHouseholds(uid)
+        console.log('[Auth] 获取到的家庭列表:', list)
+        
+        if (list.length === 0) {
+          console.log('[Auth] 没有家庭，创建默认家庭...')
+          const defaultName = '我的家庭'
+          const created = await apiCreateHousehold(uid, defaultName)
+          console.log('[Auth] 默认家庭创建成功:', created)
+          list = [created]
+        }
+        
+        return list
+      } catch (err) {
+        console.error('[Auth] 获取/创建家庭失败:', err)
+        // 返回空数组，让用户使用个人模式
+        return []
       }
-      return list
     },
     [],
   )

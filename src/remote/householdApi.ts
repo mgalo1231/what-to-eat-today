@@ -47,11 +47,15 @@ export const createHousehold = async (
   // 1. 创建家庭
   const { data: household, error: hError } = await sb
     .from('households')
-    .insert({ name })
+    .insert({ 
+      name,
+      owner_id: userId 
+    })
     .select()
     .single()
 
   if (hError || !household) {
+    console.error('Create household error:', hError)
     throw new Error(hError?.message || 'Failed to create household')
   }
 
