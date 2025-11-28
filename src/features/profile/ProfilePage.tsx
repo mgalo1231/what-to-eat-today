@@ -132,7 +132,7 @@ export const ProfilePage = () => {
 
       // 3. 直接跳转到登录页（使用 window.location 确保完全重置）
       // 不等待，直接跳转，让页面完全重新加载
-      window.location.href = '/login'
+      window.location.href = window.location.origin + '/login'
     } catch (err) {
       console.error('Sign out error:', err)
       // 即使出错也尝试跳转
@@ -140,7 +140,7 @@ export const ProfilePage = () => {
         localStorage.clear()
         sessionStorage.clear()
       } catch {}
-      window.location.href = '/login'
+      window.location.href = window.location.origin + '/login'
     }
   }
 
