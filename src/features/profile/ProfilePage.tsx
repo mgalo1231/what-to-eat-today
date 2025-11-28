@@ -103,26 +103,15 @@ export const ProfilePage = () => {
 
     if (!confirmed) return
 
-    if (!isSupabaseConfigured || !supabase) {
-      // 离线模式，直接清理本地数据并跳转
-      try {
-        localStorage.clear()
-        sessionStorage.clear()
-      } catch {}
-      navigate('/login', { replace: true })
-      window.location.reload() // 强制刷新确保状态重置
-      return
-    }
-
     setLoading(true)
     try {
-      // 1. 退出 Supabase 认证
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('Sign out error:', error)
-        showToast('退出登录失败，请重试', 'error')
-        setLoading(false)
-        return
+      // 1. 退出 Supabase 认证（如果已配置）
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.auth.signOut()
+        if (error) {
+          console.error('Sign out error:', error)
+          // 即使 signOut 失败，也继续清理本地数据
+        }
       }
 
       // 2. 清理本地存储
@@ -133,16 +122,17 @@ export const ProfilePage = () => {
         console.error('Clear storage error:', e)
       }
 
-      // 3. 等待一下确保状态更新
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
-      // 4. 跳转到登录页并强制刷新
-      navigate('/login', { replace: true })
-      window.location.reload() // 强制刷新确保所有状态重置
+      // 3. 直接跳转到登录页（使用 window.location 确保完全重置）
+      // 不等待，直接跳转，让页面完全重新加载
+      window.location.href = '/login'
     } catch (err) {
       console.error('Sign out error:', err)
-      showToast('退出登录失败，请重试', 'error')
-      setLoading(false)
+      // 即使出错也尝试跳转
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch {}
+      window.location.href = '/login'
     }
   }
 
