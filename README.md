@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# 今天吃什么 🍳
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一款帮助家庭规划每日美食的 PWA 应用。
 
-Currently, two official plugins are available:
+## 功能特点
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 📖 **菜谱管理** - 添加、编辑、搜索菜谱
+- 🥬 **库存管理** - 记录家里的食材和保质期
+- 🛒 **购物清单** - 根据菜谱自动生成购物清单
+- 🎲 **今日推荐** - 根据时间和标签智能推荐菜品
+- 💡 **发现新菜** - 探索新菜谱，一键添加到收藏
+- 👨‍👩‍👧 **家庭共享** - 和家人共享菜谱、库存和购物清单
+- 📱 **PWA 支持** - 可添加到主屏幕，离线使用
 
-## React Compiler
+## 技术栈
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19 + TypeScript
+- Vite + PWA
+- Tailwind CSS
+- Dexie.js (IndexedDB)
+- Supabase (认证 + 云同步)
 
-## Expanding the ESLint configuration
+## 本地开发
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```bash
+# 安装依赖
+npm install
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# 启动开发服务器
+npm run dev
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 构建生产版本
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 环境变量
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+创建 `.env.local` 文件：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SUPABASE_URL=你的Supabase项目URL
+VITE_SUPABASE_ANON_KEY=你的Supabase匿名Key
+VITE_SUPABASE_SCHEMA=menuapp
 ```
+
+## 部署
+
+推荐使用 Vercel 部署，记得在 Vercel 中配置环境变量。

@@ -14,9 +14,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['pwa-icon.svg'],
       manifest: {
-        name: '菜单家',
-        short_name: '菜单家',
-        description: '家庭共享的菜谱 + 库存 + 购物清单小助手',
+        name: '今天吃什么',
+        short_name: '今天吃什么',
+        description: '和家人一起管理菜谱、库存和购物清单',
         start_url: '/',
         display: 'standalone',
         theme_color: '#ff7d41',

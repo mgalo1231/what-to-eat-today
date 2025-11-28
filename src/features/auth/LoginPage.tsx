@@ -65,10 +65,10 @@ export const LoginPage = () => {
             <ChefHat className="h-12 w-12 text-white" />
           </div>
 
-          <h1 className="mb-2 text-3xl font-bold text-ios-text">菜单家</h1>
-          <p className="mb-8 text-center text-ios-muted">
-            和家人一起管理菜谱、库存和购物清单
-          </p>
+<h1 className="mb-2 text-3xl font-bold text-ios-text">今天吃什么</h1>
+        <p className="mb-8 text-center text-ios-muted">
+          和家人一起规划每日美食
+        </p>
 
           {/* 登录表单 */}
           <div className="w-full max-w-sm space-y-4">
