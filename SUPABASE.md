@@ -210,3 +210,94 @@ npm run dev
 2. **邀请成员**：把家庭的 `invite_code` 分享给伴侣/家人。
 3. **加入家庭**：对方登录后，通过 `invite_code` 查到 `household_id`，在 `menuapp.members` 插入自己（role = 'member'）。
 4. **共享数据**：同一 `household_id` 下的菜谱、库存、购物清单自动共享。
+
+---
+
+## 使用 public schema 的配置（如果使用 public schema 而非 menuapp）
+
+如果你的项目使用 `public` schema，执行以下 SQL：
+
+```sql
+-- ========================================
+-- 1. 创建表（public schema）
+-- ========================================
+create table if not exists public.households (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  invite_code text unique default substr(md5(random()::text), 1, 8),
+  owner_id uuid not null default auth.uid(),
+  created_at timestamptz default now()
+);
+
+create table if not exists public.members (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  household_id uuid not null references public.households(id) on delete cascade,
+  display_name text,
+  role text not null default 'member',  -- 'owner' | 'member'
+  created_at timestamptz default now(),
+  unique(user_id, household_id)
+);
+
+-- ========================================
+-- 2. 开启 RLS
+-- ========================================
+alter table public.households enable row level security;
+alter table public.members enable row level security;
+
+-- ========================================
+-- 3. 辅助函数
+-- ========================================
+create or replace function public.my_household_ids()
+returns setof uuid
+language sql
+security definer
+stable
+as $$
+  select household_id from public.members where user_id = auth.uid();
+$$;
+
+-- ========================================
+-- 4. RLS 策略
+-- ========================================
+
+-- households：允许查看自己所在的家庭，允许创建家庭
+drop policy if exists "Users can view their households" on public.households;
+drop policy if exists "Users can insert households" on public.households;
+
+create policy "Users can view their households"
+on public.households for select
+using (
+  auth.uid() = owner_id
+  or id in (select public.my_household_ids())
+);
+
+create policy "Users can insert households"
+on public.households for insert
+with check (auth.uid() = owner_id);
+
+-- members：允许用户插入自己为成员，允许查看同家庭成员
+drop policy if exists "Users can insert themselves as members" on public.members;
+drop policy if exists "Users can view household members" on public.members;
+drop policy if exists "Users can update household members" on public.members;
+drop policy if exists "Users can delete household members" on public.members;
+
+create policy "Users can insert themselves as members"
+on public.members for insert
+with check (user_id = auth.uid());
+
+create policy "Users can view household members"
+on public.members for select
+using (
+  user_id = auth.uid()
+  or household_id in (select public.my_household_ids())
+);
+
+create policy "Users can update household members"
+on public.members for update
+using (household_id in (select public.my_household_ids()));
+
+create policy "Users can delete household members"
+on public.members for delete
+using (household_id in (select public.my_household_ids()));
+```

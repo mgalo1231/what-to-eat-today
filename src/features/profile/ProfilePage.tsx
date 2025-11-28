@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   User,
@@ -9,11 +9,16 @@ import {
   ChevronRight,
   Plus,
   Settings,
+  Share2,
+  X,
 } from 'lucide-react'
 import type { FormEvent } from 'react'
 
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthContext'
+import { getHouseholdMembers } from '@/remote/householdApi'
+import type { HouseholdMember } from '@/types/entities'
+import { useToast } from '@/components/ui/Toast'
 
 export const ProfilePage = () => {
   const navigate = useNavigate()
@@ -33,12 +38,55 @@ export const ProfilePage = () => {
   const [inviteCode, setInviteCode] = useState('')
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
+  const [members, setMembers] = useState<HouseholdMember[]>([])
+  const [showMembers, setShowMembers] = useState(false)
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const { showToast } = useToast()
+
+  // 获取家庭成员列表
+  useEffect(() => {
+    if (household?.id && isSupabaseConfigured) {
+      setLoadingMembers(true)
+      getHouseholdMembers(household.id)
+        .then(setMembers)
+        .catch((err) => {
+          console.error('Failed to load members', err)
+        })
+        .finally(() => setLoadingMembers(false))
+    } else {
+      setMembers([])
+    }
+  }, [household?.id, isSupabaseConfigured])
 
   const copyInviteCode = () => {
     if (household?.inviteCode) {
       navigator.clipboard.writeText(household.inviteCode)
       setCopied(true)
+      showToast('邀请码已复制', 'success')
       setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const shareInviteCode = async () => {
+    if (!household?.inviteCode) return
+
+    const shareText = `加入我的家庭"${household.name}"！\n邀请码：${household.inviteCode}\n\n在"今天吃什么"应用中输入邀请码即可加入。`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '邀请加入家庭',
+          text: shareText,
+        })
+        showToast('分享成功', 'success')
+      } catch (err) {
+        // 用户取消分享，不显示错误
+        if ((err as Error).name !== 'AbortError') {
+          copyInviteCode() // 降级到复制
+        }
+      }
+    } else {
+      copyInviteCode() // 不支持分享，降级到复制
     }
   }
 
@@ -54,15 +102,31 @@ export const ProfilePage = () => {
 
   const handleCreateHousehold = async (e: FormEvent) => {
     e.preventDefault()
-    if (!newHouseholdName.trim()) return
+    const name = newHouseholdName.trim()
+    if (!name) {
+      showToast('请输入家庭名称', 'error')
+      return
+    }
     setLoading(true)
+    setStatus('')
     try {
-      await createHousehold(newHouseholdName.trim())
+      await createHousehold(name)
       setNewHouseholdName('')
       setShowCreateForm(false)
-      setStatus('家庭创建成功！')
+      showToast('家庭创建成功！', 'success')
+      setStatus('')
     } catch (err) {
-      setStatus(`创建失败：${(err as Error).message}`)
+      const error = err as Error
+      let message = '创建失败'
+      if (error.message.includes('network') || error.message.includes('fetch')) {
+        message = '网络错误，请检查网络连接后重试'
+      } else if (error.message.includes('permission') || error.message.includes('policy')) {
+        message = '权限不足，请确保已正确登录'
+      } else {
+        message = `创建失败：${error.message}`
+      }
+      showToast(message, 'error')
+      setStatus(message)
     } finally {
       setLoading(false)
     }
@@ -70,18 +134,49 @@ export const ProfilePage = () => {
 
   const handleJoinHousehold = async (e: FormEvent) => {
     e.preventDefault()
-    if (!inviteCode.trim()) return
+    const code = inviteCode.trim().toLowerCase().replace(/\s/g, '')
+    if (!code) {
+      showToast('请输入邀请码', 'error')
+      return
+    }
+    if (code.length !== 8) {
+      showToast('邀请码应为 8 位字符', 'error')
+      return
+    }
     setLoading(true)
+    setStatus('')
     try {
-      await joinHousehold(inviteCode.trim())
+      await joinHousehold(code)
       setInviteCode('')
       setShowJoinForm(false)
-      setStatus('加入家庭成功！')
+      showToast('加入家庭成功！', 'success')
+      setStatus('')
     } catch (err) {
-      setStatus(`加入失败：${(err as Error).message}`)
+      const error = err as Error
+      let message = '加入失败'
+      if (error.message.includes('无效') || error.message.includes('不存在')) {
+        message = '邀请码无效，请检查后重试'
+      } else if (error.message.includes('已经是')) {
+        message = '你已经是该家庭的成员'
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        message = '网络错误，请检查网络连接后重试'
+      } else {
+        message = `加入失败：${error.message}`
+      }
+      showToast(message, 'error')
+      setStatus(message)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.toLowerCase().replace(/\s/g, '')
+    // 限制为 8 位
+    if (value.length > 8) {
+      value = value.slice(0, 8)
+    }
+    setInviteCode(value)
   }
 
   // 生成头像背景色（基于 userId）
@@ -130,28 +225,89 @@ export const ProfilePage = () => {
 
       {/* 当前家庭 */}
       {household && (
-        <section className="space-y-3 rounded-[24px] bg-gradient-to-br from-ios-primary to-ios-secondary p-4 text-white shadow-card">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            <h2 className="font-semibold">当前家庭</h2>
+        <section className="space-y-4 rounded-[24px] bg-gradient-to-br from-ios-primary to-ios-secondary p-4 text-white shadow-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              <h2 className="font-semibold">当前家庭</h2>
+            </div>
+            {members.length > 0 && (
+              <button
+                onClick={() => setShowMembers(!showMembers)}
+                className="text-sm text-white/80 underline"
+              >
+                {showMembers ? '收起' : `${members.length} 位成员`}
+              </button>
+            )}
           </div>
           <p className="text-2xl font-bold">{household.name}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-white/80">邀请码：</span>
-            <code className="rounded bg-white/20 px-2 py-1 font-mono text-sm">
+
+          {/* 邀请码区域 - 更醒目 */}
+          <div className="space-y-2 rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-white/90">邀请码</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={shareInviteCode}
+                  className="rounded-full bg-white/20 p-2 transition-all hover:bg-white/30"
+                  title="分享邀请码"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={copyInviteCode}
+                  className="rounded-full bg-white/20 p-2 transition-all hover:bg-white/30"
+                  title="复制邀请码"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <code className="block text-center text-3xl font-bold tracking-wider text-white">
               {household.inviteCode}
             </code>
-            <button
-              onClick={copyInviteCode}
-              className="rounded-full bg-white/20 p-2"
-            >
-              {copied ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </button>
           </div>
+
+          {/* 成员列表 */}
+          {showMembers && (
+            <div className="space-y-2 rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
+              {loadingMembers ? (
+                <div className="py-2 text-center text-sm text-white/70">
+                  加载中...
+                </div>
+              ) : members.length > 0 ? (
+                members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {member.displayName || '成员'}
+                        </p>
+                        <p className="text-xs text-white/60">
+                          {member.role === 'owner' ? '创建者' : '成员'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-2 text-center text-sm text-white/70">
+                  暂无成员
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="text-sm text-white/70">
             分享邀请码给家人，一起管理菜谱和购物清单
           </p>
@@ -241,25 +397,35 @@ export const ProfilePage = () => {
           </button>
         ) : (
           <form onSubmit={handleJoinHousehold} className="space-y-2">
-            <input
-              type="text"
-              placeholder="输入邀请码"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              className="w-full rounded-2xl border border-ios-border px-4 py-3"
-              autoFocus
-            />
+            <div className="space-y-1">
+              <input
+                type="text"
+                placeholder="请输入 8 位邀请码"
+                value={inviteCode}
+                onChange={handleInviteCodeChange}
+                maxLength={8}
+                className="w-full rounded-2xl border border-ios-border px-4 py-3 font-mono text-center text-lg tracking-wider focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
+                autoFocus
+              />
+              <p className="text-xs text-ios-muted">
+                {inviteCode.length}/8 位
+              </p>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowJoinForm(false)}
+                onClick={() => {
+                  setShowJoinForm(false)
+                  setInviteCode('')
+                  setStatus('')
+                }}
                 className="flex-1 rounded-full border border-ios-border py-2 font-medium"
               >
                 取消
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || inviteCode.length !== 8}
                 className="flex-1 rounded-full bg-ios-primary py-2 font-medium text-white disabled:opacity-50"
               >
                 {loading ? '加入中...' : '加入'}
@@ -269,7 +435,15 @@ export const ProfilePage = () => {
         )}
 
         {status && (
-          <p className="text-center text-sm text-ios-muted">{status}</p>
+          <div className="flex items-center justify-between rounded-xl bg-ios-danger/10 px-3 py-2 text-sm text-ios-danger">
+            <span>{status}</span>
+            <button
+              onClick={() => setStatus('')}
+              className="text-ios-danger/60 hover:text-ios-danger"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </section>
 
