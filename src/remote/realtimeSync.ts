@@ -60,8 +60,11 @@ const fromDbChat = (c: Record<string, unknown>): ChatLog => ({
 export const useRealtimeSync = (householdId: string | undefined) => {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !householdId || householdId === 'local-family') {
+      console.log('Realtime sync skipped:', { isSupabaseConfigured, hasSupabase: !!supabase, householdId })
       return
     }
+
+    console.log('Setting up realtime sync for household:', householdId)
 
     // 订阅 recipes 表
     const recipesChannel = supabase
@@ -92,7 +95,9 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Recipes channel status:', status)
+      })
 
     // 订阅 inventory 表
     const inventoryChannel = supabase
@@ -123,7 +128,9 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Inventory channel status:', status)
+      })
 
     // 订阅 shopping_list 表
     const shoppingChannel = supabase
@@ -154,7 +161,9 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Shopping channel status:', status)
+      })
 
     // 订阅 chat_logs 表
     const chatChannel = supabase
@@ -185,9 +194,12 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Chat channel status:', status)
+      })
 
     return () => {
+      console.log('Cleaning up realtime subscriptions')
       recipesChannel.unsubscribe()
       inventoryChannel.unsubscribe()
       shoppingChannel.unsubscribe()
