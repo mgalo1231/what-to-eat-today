@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #1c1c1e;
+  background-color: #f2f2f7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f2f2f7;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    sans-serif;
+  color: #1c1c1e;
+}
+
+#root {
+  min-height: 100vh;
+  background: #f2f2f7;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    color: #1c1c1e;
+  }
+
+  input,
+  textarea,
+  button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .ios-card {
+    @apply rounded-[24px] bg-ios-surface shadow-card px-5 py-4;
+  }
+
+  .ios-pill {
+    @apply rounded-pill border border-ios-border bg-white/90 px-3 py-1 text-sm font-medium text-ios-muted;
+  }
+
+  .ios-section-label {
+    @apply text-xs font-medium uppercase tracking-[0.2em] text-ios-muted;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
