@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { RefreshCw, UtensilsCrossed, Sparkles, Plus, Check } from 'lucide-react'
+import { RefreshCw, UtensilsCrossed, Sparkles, Plus, Check, Wand2 } from 'lucide-react'
 
 import { useInventory, useRecipes } from '@/db/hooks'
 import { recipeRepository } from '@/db/repositories'
@@ -10,8 +10,10 @@ import { categorizeByInventory } from '@/lib/filters'
 import { TagPill } from '@/components/ui/TagPill'
 import { ingredientDiff } from '@/db/repositories'
 import { discoverRecipes, type DiscoverRecipe } from '@/data/discoverRecipes'
+import { generateNewRecipes, generateRecipeByTag } from '@/lib/aiRecipeGenerator'
 import { useToast } from '@/components/ui/Toast'
 import { RecipeCardSkeleton } from '@/components/ui/Skeleton'
+import { RecipePreviewModal } from '@/components/ui/RecipePreviewModal'
 import type { Recipe } from '@/types/entities'
 
 type DurationValue = 'all' | '20' | '40' | '60'
@@ -23,7 +25,7 @@ const durationOptions: { label: string; value: DurationValue; minutes?: number }
 ]
 
 // 发现新菜的标签分类
-const discoverTags = ['全部', '川菜', '粤菜', '湘菜', '东北菜', '日式', '韩式', '西式', '甜品']
+const discoverTags = ['全部', '川菜', '粤菜', '湘菜', '东北菜', '日式', '韩式', '西式', '江浙菜']
 
 export const TodayPage = () => {
   const recipes = useRecipes()
@@ -38,8 +40,12 @@ export const TodayPage = () => {
   const [discoverList, setDiscoverList] = useState<DiscoverRecipe[]>([])
   const [addedTitles, setAddedTitles] = useState<Set<string>>(new Set())
   const [addingTitle, setAddingTitle] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  
+  // 预览弹窗
+  const [previewRecipe, setPreviewRecipe] = useState<DiscoverRecipe | null>(null)
 
-  const buildSuggestions = () =>
+  const buildSuggestions = useCallback(() =>
     recipes
       ? recommendRecipes({
           recipes,
@@ -49,13 +55,14 @@ export const TodayPage = () => {
           count: 3,
         })
       : []
+  , [recipes, duration, tag])
 
   useEffect(() => {
     setSuggestions(buildSuggestions())
-  }, [recipes, duration, tag])
+  }, [buildSuggestions])
 
-  // 过滤已添加的菜谱并随机选择
-  const refreshDiscoverList = () => {
+  // 从预设菜谱中获取
+  const getPresetRecipes = useCallback(() => {
     const existingTitles = new Set(recipes?.map((r) => r.title) || [])
     let filtered = discoverRecipes.filter((r) => !existingTitles.has(r.title))
     
@@ -63,14 +70,62 @@ export const TodayPage = () => {
       filtered = filtered.filter((r) => r.tags.includes(discoverTag))
     }
     
-    // 随机打乱并取前3个
     const shuffled = [...filtered].sort(() => Math.random() - 0.5)
-    setDiscoverList(shuffled.slice(0, 3))
+    return shuffled.slice(0, 3)
+  }, [recipes, discoverTag])
+
+  // 初始化发现列表
+  useEffect(() => {
+    setDiscoverList(getPresetRecipes())
+  }, [getPresetRecipes])
+
+  // 换一批：混合预设和AI生成
+  const refreshDiscoverList = async () => {
+    setGenerating(true)
+    
+    try {
+      // 先获取预设菜谱
+      const presets = getPresetRecipes()
+      
+      // 如果预设不够3个，用AI生成补充
+      if (presets.length < 3) {
+        const needCount = 3 - presets.length
+        const generated = discoverTag === '全部'
+          ? generateNewRecipes(needCount)
+          : Array.from({ length: needCount }, () => generateRecipeByTag(discoverTag))
+        
+        setDiscoverList([...presets, ...generated])
+        showToast('✨ AI 为你生成了新菜谱', 'success')
+      } else {
+        // 随机决定是否生成AI菜谱（30%概率）
+        if (Math.random() < 0.3) {
+          const generated = discoverTag === '全部'
+            ? generateNewRecipes(1)
+            : [generateRecipeByTag(discoverTag)]
+          setDiscoverList([...presets.slice(0, 2), ...generated])
+          showToast('✨ AI 为你生成了新菜谱', 'success')
+        } else {
+          setDiscoverList(presets)
+        }
+      }
+    } finally {
+      setGenerating(false)
+    }
   }
 
-  useEffect(() => {
-    refreshDiscoverList()
-  }, [recipes, discoverTag])
+  // AI生成新菜
+  const generateAIRecipes = () => {
+    setGenerating(true)
+    try {
+      const generated = discoverTag === '全部'
+        ? generateNewRecipes(3)
+        : Array.from({ length: 3 }, () => generateRecipeByTag(discoverTag))
+      setDiscoverList(generated)
+      showToast('✨ AI 为你生成了 3 道新菜', 'success')
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   // 添加菜谱到我的菜谱库
   const handleAddRecipe = async (recipe: DiscoverRecipe) => {
@@ -88,6 +143,7 @@ export const TodayPage = () => {
       })
       setAddedTitles((prev) => new Set(prev).add(recipe.title))
       showToast(`「${recipe.title}」已添加到菜谱库`, 'success')
+      setPreviewRecipe(null)
     } catch {
       showToast('添加失败，请重试', 'error')
     } finally {
@@ -132,7 +188,7 @@ export const TodayPage = () => {
             return (
               <button
                 key={option.value}
-                className={`rounded-pill px-4 py-1 text-sm font-semibold ${
+                className={`btn-press rounded-pill px-4 py-1 text-sm font-semibold ${
                   active ? 'bg-white text-ios-primary' : 'bg-white/20'
                 }`}
                 onClick={() => setDuration(option.value)}
@@ -148,7 +204,7 @@ export const TodayPage = () => {
             return (
               <button
                 key={item}
-                className={`rounded-pill px-3 py-1 text-sm ${
+                className={`btn-press rounded-pill px-3 py-1 text-sm ${
                   active ? 'bg-white text-ios-primary' : 'bg-white/20'
                 }`}
                 onClick={() => setTag(active ? null : item)}
@@ -165,7 +221,7 @@ export const TodayPage = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">今日推荐</h2>
           <button
-            className="inline-flex items-center gap-1 text-sm font-semibold text-ios-primary"
+            className="btn-press inline-flex items-center gap-1 text-sm font-semibold text-ios-primary"
             onClick={() => setSuggestions(buildSuggestions())}
           >
             <RefreshCw className="h-4 w-4" />
@@ -178,7 +234,7 @@ export const TodayPage = () => {
               <Link
                 key={recipe.id}
                 to={`/recipes/${recipe.id}`}
-                className="flex flex-col gap-2 rounded-[24px] border border-ios-border bg-white p-4 shadow-soft"
+                className="card-press flex flex-col gap-2 rounded-[24px] border border-ios-border bg-white p-4 shadow-soft"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -191,7 +247,7 @@ export const TodayPage = () => {
                     {recipe.duration}′
                   </span>
                 </div>
-                <p className="text-sm text-ios-muted">{recipe.description}</p>
+                <p className="text-sm text-ios-muted line-clamp-2">{recipe.description}</p>
                 <div className="flex flex-wrap gap-2">
                   {recipe.tags.slice(0, 3).map((tagItem) => (
                     <TagPill key={tagItem}>{tagItem}</TagPill>
@@ -214,13 +270,24 @@ export const TodayPage = () => {
             <Sparkles className="h-5 w-5 text-amber-500" />
             发现新菜
           </h2>
-          <button
-            className="inline-flex items-center gap-1 text-sm font-semibold text-ios-primary"
-            onClick={refreshDiscoverList}
-          >
-            <RefreshCw className="h-4 w-4" />
-            换一批
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn-press inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-sm font-semibold text-purple-600"
+              onClick={generateAIRecipes}
+              disabled={generating}
+            >
+              <Wand2 className="h-4 w-4" />
+              AI生成
+            </button>
+            <button
+              className="btn-press inline-flex items-center gap-1 text-sm font-semibold text-ios-primary"
+              onClick={refreshDiscoverList}
+              disabled={generating}
+            >
+              <RefreshCw className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
+              换一批
+            </button>
+          </div>
         </div>
         
         {/* 菜系标签 */}
@@ -229,7 +296,7 @@ export const TodayPage = () => {
             <button
               key={t}
               onClick={() => setDiscoverTag(t)}
-              className={`whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium transition-all ${
+              className={`btn-press whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium transition-all ${
                 discoverTag === t
                   ? 'bg-amber-500 text-white'
                   : 'bg-amber-50 text-amber-700'
@@ -242,14 +309,22 @@ export const TodayPage = () => {
 
         {/* 推荐列表 */}
         <div className="space-y-3">
-          {discoverList.length > 0 ? (
+          {generating ? (
+            <div className="flex items-center justify-center rounded-[24px] border border-amber-200 bg-amber-50 p-8">
+              <div className="flex items-center gap-3 text-amber-600">
+                <Wand2 className="h-5 w-5 animate-pulse" />
+                <span>AI 正在为你生成新菜谱...</span>
+              </div>
+            </div>
+          ) : discoverList.length > 0 ? (
             discoverList.map((recipe) => {
               const isAdded = addedTitles.has(recipe.title)
               const isAdding = addingTitle === recipe.title
               return (
                 <div
                   key={recipe.title}
-                  className="flex flex-col gap-2 rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-soft"
+                  className="card-press flex flex-col gap-2 rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-soft cursor-pointer"
+                  onClick={() => setPreviewRecipe(recipe)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
@@ -265,7 +340,10 @@ export const TodayPage = () => {
                         {recipe.duration}′
                       </span>
                       <button
-                        onClick={() => handleAddRecipe(recipe)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAddRecipe(recipe)
+                        }}
                         disabled={isAdded || isAdding}
                         className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold transition-all ${
                           isAdded
@@ -289,25 +367,37 @@ export const TodayPage = () => {
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm text-amber-700/80">{recipe.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {recipe.tags.slice(0, 3).map((tagItem) => (
-                      <span
-                        key={tagItem}
-                        className="rounded-full bg-amber-100/80 px-2 py-0.5 text-xs text-amber-700"
-                      >
-                        {tagItem}
-                      </span>
-                    ))}
+                  <p className="text-sm text-amber-700/80 line-clamp-2">{recipe.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap gap-2">
+                      {recipe.tags.slice(0, 3).map((tagItem) => (
+                        <span
+                          key={tagItem}
+                          className="rounded-full bg-amber-100/80 px-2 py-0.5 text-xs text-amber-700"
+                        >
+                          {tagItem}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-xs text-amber-500">点击查看详情 →</span>
                   </div>
                 </div>
               )
             })
           ) : (
             <div className="rounded-[24px] border border-dashed border-amber-300 bg-amber-50 p-6 text-center text-amber-600">
-              {discoverTag === '全部'
-                ? '所有推荐菜谱都已添加到你的菜谱库啦！'
-                : `暂无更多${discoverTag}推荐，换个分类试试？`}
+              <p className="mb-3">
+                {discoverTag === '全部'
+                  ? '所有预设菜谱都已添加啦！'
+                  : `暂无更多${discoverTag}推荐`}
+              </p>
+              <button
+                onClick={generateAIRecipes}
+                className="btn-press inline-flex items-center gap-2 rounded-full bg-purple-500 px-4 py-2 text-sm font-semibold text-white"
+              >
+                <Wand2 className="h-4 w-4" />
+                让 AI 为你生成新菜
+              </button>
             </div>
           )}
         </div>
@@ -320,7 +410,7 @@ export const TodayPage = () => {
             <p className="text-sm text-ios-muted">根据库存</p>
             <h2 className="text-xl font-semibold">现有食材能做什么</h2>
           </div>
-          <Link className="text-sm font-semibold text-ios-primary" to="/inventory">
+          <Link className="btn-press text-sm font-semibold text-ios-primary" to="/inventory">
             管理库存
           </Link>
         </div>
@@ -332,7 +422,7 @@ export const TodayPage = () => {
             <Link
               key={recipe.id}
               to={`/recipes/${recipe.id}`}
-              className="flex items-center justify-between rounded-[20px] border border-ios-border px-4 py-3"
+              className="card-press flex items-center justify-between rounded-[20px] border border-ios-border px-4 py-3"
             >
               <div>
                 <p className="font-semibold">{recipe.title}</p>
@@ -359,7 +449,7 @@ export const TodayPage = () => {
               <Link
                 key={recipe.id}
                 to={`/recipes/${recipe.id}`}
-                className="flex flex-col gap-2 rounded-[20px] border border-ios-border px-4 py-3"
+                className="card-press flex flex-col gap-2 rounded-[20px] border border-ios-border px-4 py-3"
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold">{recipe.title}</p>
@@ -380,11 +470,20 @@ export const TodayPage = () => {
       </section>
       <Link
         to="/recipes"
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-ios-primary py-3 font-semibold text-white shadow-soft"
+        className="btn-press flex w-full items-center justify-center gap-2 rounded-full bg-ios-primary py-3 font-semibold text-white shadow-soft"
       >
         <UtensilsCrossed className="h-4 w-4" />
         浏览全部菜谱
       </Link>
+
+      {/* 菜谱预览弹窗 */}
+      <RecipePreviewModal
+        recipe={previewRecipe}
+        isAdded={previewRecipe ? addedTitles.has(previewRecipe.title) : false}
+        isAdding={previewRecipe ? addingTitle === previewRecipe.title : false}
+        onAdd={() => previewRecipe && handleAddRecipe(previewRecipe)}
+        onClose={() => setPreviewRecipe(null)}
+      />
     </div>
   )
 }
