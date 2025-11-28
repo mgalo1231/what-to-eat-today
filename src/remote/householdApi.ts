@@ -177,3 +177,39 @@ export const leaveHousehold = async (
     .eq('household_id', householdId)
 }
 
+/**
+ * 删除家庭（只有 owner 可以删除）
+ */
+export const deleteHousehold = async (
+  userId: string,
+  householdId: string,
+): Promise<void> => {
+  const sb = ensure()
+
+  // 1. 检查用户是否是 owner
+  const { data: member, error: memberError } = await sb
+    .from('members')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('household_id', householdId)
+    .single()
+
+  if (memberError || !member) {
+    throw new Error('你不是该家庭的成员')
+  }
+
+  if (member.role !== 'owner') {
+    throw new Error('只有创建者可以删除家庭')
+  }
+
+  // 2. 删除家庭（会级联删除所有成员和相关数据）
+  const { error: deleteError } = await sb
+    .from('households')
+    .delete()
+    .eq('id', householdId)
+
+  if (deleteError) {
+    throw new Error(deleteError.message || '删除家庭失败')
+  }
+}
+

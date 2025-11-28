@@ -11,6 +11,7 @@ import {
   Settings,
   Share2,
   X,
+  Trash2,
 } from 'lucide-react'
 import type { FormEvent } from 'react'
 
@@ -30,6 +31,7 @@ export const ProfilePage = () => {
     switchHousehold,
     createHousehold,
     joinHousehold,
+    deleteHousehold,
   } = useAuth()
 
   const [copied, setCopied] = useState(false)
@@ -215,6 +217,54 @@ export const ProfilePage = () => {
     setInviteCode(value)
   }
 
+  // 检查用户是否是某个家庭的 owner
+  // 注意：只对当前家庭准确，其他家庭会在删除时由 API 验证
+  const isOwner = (householdId: string): boolean => {
+    if (!userId) return false
+    // 如果是当前家庭，使用 members 列表判断
+    if (householdId === household?.id && members.length > 0) {
+      const member = members.find((m) => m.householdId === householdId && m.userId === userId)
+      return member?.role === 'owner'
+    }
+    // 对于其他家庭，假设可以删除（API 会验证权限）
+    // 这样用户可以看到删除按钮，但如果不是 owner，API 会返回错误
+    return true
+  }
+
+  const handleDeleteHousehold = async (householdId: string, householdName: string) => {
+    const confirmed = await confirm({
+      title: '删除家庭',
+      message: `确定要删除家庭"${householdName}"吗？此操作不可恢复，所有家庭数据（菜谱、库存、购物清单等）将被永久删除。`,
+      confirmText: '删除',
+      danger: true,
+    })
+
+    if (!confirmed) return
+
+    setLoading(true)
+    try {
+      await deleteHousehold(householdId)
+      showToast('家庭已删除', 'success')
+      // 刷新成员列表（如果当前家庭被删除，members 会清空）
+      if (household?.id === householdId) {
+        setMembers([])
+      }
+    } catch (err) {
+      const error = err as Error
+      let message = '删除失败'
+      if (error.message.includes('只有创建者')) {
+        message = '只有创建者可以删除家庭'
+      } else if (error.message.includes('不是该家庭的成员')) {
+        message = '你不是该家庭的成员'
+      } else {
+        message = `删除失败：${error.message}`
+      }
+      showToast(message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // 生成头像背景色（基于 userId）
   const avatarColor = userId
     ? `hsl(${parseInt(userId.slice(0, 8), 16) % 360}, 70%, 60%)`
@@ -347,6 +397,18 @@ export const ProfilePage = () => {
           <p className="text-sm text-white/70">
             分享邀请码给家人，一起管理菜谱和购物清单
           </p>
+
+          {/* 删除家庭按钮（只有 owner 可见） */}
+          {isOwner(household.id) && (
+            <button
+              onClick={() => handleDeleteHousehold(household.id, household.name)}
+              disabled={loading}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              {loading ? '删除中...' : '删除家庭'}
+            </button>
+          )}
         </section>
       )}
 
@@ -357,19 +419,34 @@ export const ProfilePage = () => {
             <Settings className="h-5 w-5 text-ios-primary" />
             切换家庭
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {households.map((h) => (
-              <button
+              <div
                 key={h.id}
-                onClick={() => switchHousehold(h.id)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                  h.id === household?.id
-                    ? 'bg-ios-primary text-white'
-                    : 'bg-ios-bg text-ios-text'
-                }`}
+                className="flex items-center gap-2 rounded-xl border border-ios-border p-2"
               >
-                {h.name}
-              </button>
+                <button
+                  onClick={() => switchHousehold(h.id)}
+                  className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    h.id === household?.id
+                      ? 'bg-ios-primary text-white'
+                      : 'bg-ios-bg text-ios-text'
+                  }`}
+                >
+                  {h.name}
+                </button>
+                {/* 只有 owner 可以删除 */}
+                {isOwner(h.id) && (
+                  <button
+                    onClick={() => handleDeleteHousehold(h.id, h.name)}
+                    disabled={loading}
+                    className="rounded-full p-2 text-ios-danger transition-all hover:bg-ios-danger/10 disabled:opacity-50"
+                    title="删除家庭"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </section>

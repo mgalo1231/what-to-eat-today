@@ -13,6 +13,7 @@ import {
   getMyHouseholds,
   createHousehold as apiCreateHousehold,
   joinHouseholdByCode as apiJoinByCode,
+  deleteHousehold as apiDeleteHousehold,
 } from '@/remote/householdApi'
 import type { Household } from '@/types/entities'
 
@@ -26,6 +27,7 @@ export type AuthState = {
   switchHousehold: (id: string) => void
   createHousehold: (name: string, displayName?: string) => Promise<Household>
   joinHousehold: (inviteCode: string, displayName?: string) => Promise<Household>
+  deleteHousehold: (id: string) => Promise<void>
   refreshHouseholds: () => Promise<void>
 }
 
@@ -42,6 +44,9 @@ const AuthContext = createContext<AuthState>({
     throw new Error('Not implemented')
   },
   joinHousehold: async () => {
+    throw new Error('Not implemented')
+  },
+  deleteHousehold: async () => {
     throw new Error('Not implemented')
   },
   refreshHouseholds: async () => {},
@@ -124,6 +129,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return household
     },
     [userId],
+  )
+
+  // 删除家庭
+  const deleteHousehold = useCallback(
+    async (id: string) => {
+      if (!userId) throw new Error('Not logged in')
+      await apiDeleteHousehold(userId, id)
+      // 从列表中移除
+      setHouseholds((prev) => prev.filter((h) => h.id !== id))
+      // 如果删除的是当前家庭，切换到其他家庭或回到个人模式
+      if (currentHouseholdId === id) {
+        const remaining = households.filter((h) => h.id !== id)
+        if (remaining.length > 0) {
+          setCurrentHouseholdId(remaining[0].id)
+          setDbHouseholdId(remaining[0].id)
+          pullAllToDexie(remaining[0].id)
+        } else {
+          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
+        }
+      }
+    },
+    [userId, currentHouseholdId, households],
   )
 
   const getOrCreateHouseholds = useCallback(
@@ -215,6 +243,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       switchHousehold,
       createHousehold,
       joinHousehold,
+      deleteHousehold,
       refreshHouseholds,
     }),
     [
@@ -226,6 +255,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       switchHousehold,
       createHousehold,
       joinHousehold,
+      deleteHousehold,
       refreshHouseholds,
     ],
   )
