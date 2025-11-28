@@ -10,8 +10,12 @@ export const RequireAuth = ({ children }: Props) => {
   const { userId, loading, householdId } = useAuth()
   const location = useLocation()
 
-  // 如果没配置 Supabase，直接放行（离线模式）
-  if (!isSupabaseConfigured) {
+  // 如果没配置 Supabase 或者开启了离线模式，直接放行
+  const offlineMode =
+    typeof window !== 'undefined' &&
+    (localStorage.getItem('offline') === '1' ||
+      localStorage.getItem('offlineMode') === '1')
+  if (!isSupabaseConfigured || offlineMode) {
     return <>{children}</>
   }
 

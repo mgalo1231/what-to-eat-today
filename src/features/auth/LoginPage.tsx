@@ -11,6 +11,8 @@ export const LoginPage = () => {
   const { userId, loading } = useAuth()
 
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [status, setStatus] = useState<string>('')
   const [sending, setSending] = useState(false)
 
@@ -22,23 +24,45 @@ export const LoginPage = () => {
     }
   }, [userId, loading, navigate, location])
 
-  const sendMagicLink = async (event: FormEvent) => {
+  // 邮箱 + 密码 登录 / 注册
+  const handleEmailPassword = async (event: FormEvent) => {
     event.preventDefault()
     if (!isSupabaseConfigured || !supabase) {
       setStatus('未配置 Supabase，无法登录。请设置环境变量后重试。')
       return
     }
     setSending(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    })
-    setSending(false)
-    setStatus(error ? `发送失败：${error.message}` : '已发送登录链接，请查收邮箱 📬')
+    try {
+      if (authMode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) throw error
+        setStatus('登录成功，正在进入...')
+        navigate('/today', { replace: true })
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        })
+        if (error) throw error
+        setStatus('注册成功，如需邮箱验证请前往邮箱完成验证。')
+      }
+    } catch (err) {
+      setStatus(`失败：${(err as Error).message}`)
+    } finally {
+      setSending(false)
+    }
   }
 
   // 离线模式直接进入
   const enterOfflineMode = () => {
+    try {
+      localStorage.setItem('offline', '1')
+      localStorage.setItem('offlineMode', '1')
+    } catch {}
     navigate('/today')
   }
 
@@ -74,7 +98,25 @@ export const LoginPage = () => {
 
           {/* 登录表单 */}
           <div className="w-full max-w-sm space-y-4">
-            <form onSubmit={sendMagicLink} className="space-y-3">
+            {/* 切换登录/注册 */}
+            <div className="flex justify-center gap-4 text-sm">
+              <button
+                type="button"
+                className={`btn-press rounded-full px-4 py-1 ${authMode === 'login' ? 'bg-ios-primary text-white' : 'bg-white text-ios-text border border-ios-border'}`}
+                onClick={() => setAuthMode('login')}
+              >
+                账号登录
+              </button>
+              <button
+                type="button"
+                className={`btn-press rounded-full px-4 py-1 ${authMode === 'signup' ? 'bg-ios-primary text-white' : 'bg-white text-ios-text border border-ios-border'}`}
+                onClick={() => setAuthMode('signup')}
+              >
+                注册新账号
+              </button>
+            </div>
+
+            <form onSubmit={handleEmailPassword} className="space-y-3">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ios-muted" />
                 <input
@@ -86,6 +128,16 @@ export const LoginPage = () => {
                   className="w-full rounded-2xl border border-ios-border bg-white py-4 pl-12 pr-4 text-lg focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
                 />
               </div>
+              <div>
+                <input
+                  required
+                  type="password"
+                  placeholder="输入密码"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-2xl border border-ios-border bg-white px-4 py-4 text-lg focus:border-ios-primary focus:outline-none focus:ring-2 focus:ring-ios-primary/20"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={sending}
@@ -94,11 +146,11 @@ export const LoginPage = () => {
                 {sending ? (
                   <>
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    发送中...
+                    处理中...
                   </>
                 ) : (
                   <>
-                    发送登录链接
+                    {authMode === 'login' ? '登录' : '注册'}
                     <ArrowRight className="h-5 w-5" />
                   </>
                 )}
@@ -112,7 +164,9 @@ export const LoginPage = () => {
             )}
 
             <p className="text-center text-sm text-ios-muted">
-              无需密码，我们会发送一封包含登录链接的邮件
+              {authMode === 'login'
+                ? '还没有账号？点击上方“注册新账号”'
+                : '已有账号？点击上方“账号登录”'}
             </p>
           </div>
         </div>
