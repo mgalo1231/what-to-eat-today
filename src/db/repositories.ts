@@ -53,7 +53,9 @@ export const recipeRepository = {
     }
     await db.recipes.add(recipe)
     if (isSupabaseConfigured) {
-      remote.upsertRecipe(recipe).catch(() => {})
+      remote.upsertRecipe(recipe).catch((err) => {
+        console.error('Failed to sync recipe to Supabase:', err)
+      })
     }
     return recipe
   },
@@ -69,14 +71,18 @@ export const recipeRepository = {
     }
     await db.recipes.put(updated)
     if (isSupabaseConfigured) {
-      remote.upsertRecipe(updated).catch(() => {})
+      remote.upsertRecipe(updated).catch((err) => {
+        console.error('Failed to sync recipe update to Supabase:', err)
+      })
     }
     return updated
   },
   async remove(id: string) {
     await db.recipes.delete(id)
     if (isSupabaseConfigured) {
-      remote.deleteRecipe(id).catch(() => {})
+      remote.deleteRecipe(id).catch((err) => {
+        console.error('Failed to sync recipe deletion to Supabase:', err)
+      })
     }
   },
 }
@@ -96,7 +102,9 @@ export const inventoryRepository = {
     }
     await db.inventory.add(item)
     if (isSupabaseConfigured) {
-      remote.upsertInventory(item).catch(() => {})
+      remote.upsertInventory(item).catch((err) => {
+        console.error('Failed to sync inventory to Supabase:', err)
+      })
     }
     return item
   },
@@ -110,14 +118,18 @@ export const inventoryRepository = {
     }
     await db.inventory.put(updated)
     if (isSupabaseConfigured) {
-      remote.upsertInventory(updated).catch(() => {})
+      remote.upsertInventory(updated).catch((err) => {
+        console.error('Failed to sync inventory update to Supabase:', err)
+      })
     }
     return updated
   },
   async remove(id: string) {
     await db.inventory.delete(id)
     if (isSupabaseConfigured) {
-      remote.deleteInventory(id).catch(() => {})
+      remote.deleteInventory(id).catch((err) => {
+        console.error('Failed to sync inventory deletion to Supabase:', err)
+      })
     }
   },
 }
@@ -140,7 +152,9 @@ export const shoppingRepository = {
     }
     await db.shoppingList.add(item)
     if (isSupabaseConfigured) {
-      remote.upsertShopping(item).catch(() => {})
+      remote.upsertShopping(item).catch((err) => {
+        console.error('Failed to sync shopping item to Supabase:', err)
+      })
     }
     return item
   },
@@ -154,14 +168,18 @@ export const shoppingRepository = {
     }
     await db.shoppingList.put(updated)
     if (isSupabaseConfigured) {
-      remote.upsertShopping(updated).catch(() => {})
+      remote.upsertShopping(updated).catch((err) => {
+        console.error('Failed to sync shopping item update to Supabase:', err)
+      })
     }
     return updated
   },
   async remove(id: string) {
     await db.shoppingList.delete(id)
     if (isSupabaseConfigured) {
-      remote.deleteShopping(id).catch(() => {})
+      remote.deleteShopping(id).catch((err) => {
+        console.error('Failed to sync shopping item deletion to Supabase:', err)
+      })
     }
   },
   async clearBought() {

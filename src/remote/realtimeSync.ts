@@ -82,16 +82,22 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           new?: Record<string, unknown>
           old?: Record<string, unknown>
         }) => {
-          console.log('Recipes change:', payload.eventType, payload.new)
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new) {
-              const recipe = fromDbRecipe(payload.new)
-              await db.recipes.put(recipe)
+          console.log('🔔 Recipes Realtime event:', payload.eventType, payload.new || payload.old)
+          try {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              if (payload.new) {
+                const recipe = fromDbRecipe(payload.new)
+                await db.recipes.put(recipe)
+                console.log('✅ Recipe synced to local DB:', recipe.id)
+              }
+            } else if (payload.eventType === 'DELETE') {
+              if (payload.old) {
+                await db.recipes.delete(payload.old.id as string)
+                console.log('✅ Recipe deleted from local DB:', payload.old.id)
+              }
             }
-          } else if (payload.eventType === 'DELETE') {
-            if (payload.old) {
-              await db.recipes.delete(payload.old.id as string)
-            }
+          } catch (err) {
+            console.error('❌ Error syncing recipe to local DB:', err)
           }
         },
       )
@@ -115,16 +121,22 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           new?: Record<string, unknown>
           old?: Record<string, unknown>
         }) => {
-          console.log('Inventory change:', payload.eventType, payload.new)
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new) {
-              const item = fromDbInventory(payload.new)
-              await db.inventory.put(item)
+          console.log('🔔 Inventory Realtime event:', payload.eventType, payload.new || payload.old)
+          try {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              if (payload.new) {
+                const item = fromDbInventory(payload.new)
+                await db.inventory.put(item)
+                console.log('✅ Inventory synced to local DB:', item.id)
+              }
+            } else if (payload.eventType === 'DELETE') {
+              if (payload.old) {
+                await db.inventory.delete(payload.old.id as string)
+                console.log('✅ Inventory deleted from local DB:', payload.old.id)
+              }
             }
-          } else if (payload.eventType === 'DELETE') {
-            if (payload.old) {
-              await db.inventory.delete(payload.old.id as string)
-            }
+          } catch (err) {
+            console.error('❌ Error syncing inventory to local DB:', err)
           }
         },
       )
@@ -148,16 +160,22 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           new?: Record<string, unknown>
           old?: Record<string, unknown>
         }) => {
-          console.log('Shopping list change:', payload.eventType, payload.new)
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new) {
-              const item = fromDbShopping(payload.new)
-              await db.shoppingList.put(item)
+          console.log('🔔 Shopping List Realtime event:', payload.eventType, payload.new || payload.old)
+          try {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              if (payload.new) {
+                const item = fromDbShopping(payload.new)
+                await db.shoppingList.put(item)
+                console.log('✅ Shopping item synced to local DB:', item.id)
+              }
+            } else if (payload.eventType === 'DELETE') {
+              if (payload.old) {
+                await db.shoppingList.delete(payload.old.id as string)
+                console.log('✅ Shopping item deleted from local DB:', payload.old.id)
+              }
             }
-          } else if (payload.eventType === 'DELETE') {
-            if (payload.old) {
-              await db.shoppingList.delete(payload.old.id as string)
-            }
+          } catch (err) {
+            console.error('❌ Error syncing shopping item to local DB:', err)
           }
         },
       )
