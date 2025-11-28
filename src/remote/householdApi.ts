@@ -89,24 +89,38 @@ export const joinHouseholdByCode = async (
 ): Promise<Household> => {
   const sb = ensure()
 
-  // 1. 查找家庭
+  // 1. 查找家庭（邀请码不区分大小写）
+  const normalizedCode = inviteCode.trim().toLowerCase()
   const { data: household, error: hError } = await sb
     .from('households')
     .select('*')
-    .eq('invite_code', inviteCode.trim().toLowerCase())
+    .eq('invite_code', normalizedCode)
     .single()
 
-  if (hError || !household) {
+  if (hError) {
+    console.error('Find household error:', hError)
+    if (hError.code === 'PGRST116') {
+      throw new Error('邀请码无效或家庭不存在')
+    }
+    throw new Error(`查找家庭失败：${hError.message}`)
+  }
+
+  if (!household) {
     throw new Error('邀请码无效或家庭不存在')
   }
 
   // 2. 检查是否已加入
-  const { data: existing } = await sb
+  const { data: existing, error: checkError } = await sb
     .from('members')
     .select('id')
     .eq('user_id', userId)
     .eq('household_id', household.id)
-    .single()
+    .maybeSingle() // 使用 maybeSingle 避免找不到记录时报错
+
+  if (checkError && checkError.code !== 'PGRST116') {
+    // PGRST116 表示没找到记录，这是正常的
+    console.error('Check existing member error:', checkError)
+  }
 
   if (existing) {
     // 已经是成员，直接返回
@@ -129,7 +143,14 @@ export const joinHouseholdByCode = async (
   })
 
   if (mError) {
-    throw new Error(mError.message)
+    console.error('Insert member error:', mError)
+    if (mError.code === '23505') {
+      // 唯一约束违反，说明已经是成员了
+      throw new Error('你已经是该家庭的成员')
+    } else if (mError.message.includes('policy') || mError.message.includes('permission') || mError.message.includes('RLS')) {
+      throw new Error('权限不足，无法加入家庭。请检查数据库 RLS 策略设置')
+    }
+    throw new Error(`加入失败：${mError.message}`)
   }
 
   return {

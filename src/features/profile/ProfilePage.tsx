@@ -191,13 +191,16 @@ export const ProfilePage = () => {
       setStatus('')
     } catch (err) {
       const error = err as Error
+      console.error('Join household error:', error) // 输出完整错误到控制台
       let message = '加入失败'
-      if (error.message.includes('无效') || error.message.includes('不存在')) {
+      if (error.message.includes('无效') || error.message.includes('不存在') || error.message.includes('PGRST116')) {
         message = '邀请码无效，请检查后重试'
-      } else if (error.message.includes('已经是')) {
+      } else if (error.message.includes('已经是') || error.message.includes('duplicate')) {
         message = '你已经是该家庭的成员'
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
         message = '网络错误，请检查网络连接后重试'
+      } else if (error.message.includes('policy') || error.message.includes('permission') || error.message.includes('RLS')) {
+        message = '权限不足，请检查数据库 RLS 策略设置'
       } else {
         message = `加入失败：${error.message}`
       }

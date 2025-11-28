@@ -1,9 +1,15 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { TabBar } from './TabBar'
 import { FloatingChatButton } from '@/components/ui/FloatingChatButton'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useRealtimeSync } from '@/remote/realtimeSync'
 
 export const AppLayout = () => {
   const location = useLocation()
+  const { householdId } = useAuth()
+  
+  // 启用实时同步
+  useRealtimeSync(householdId)
   
   // 在聊天页面不显示悬浮按钮
   const showFloatingChat = !location.pathname.startsWith('/chat/')
