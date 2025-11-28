@@ -27,6 +27,11 @@ export const filterRecipes = (recipes: Recipe[], filters: FilterParams) => {
 }
 
 export const categorizeByInventory = (recipes: Recipe[], inventory: InventoryItem[]) => {
+  // 添加空值检查
+  if (!recipes || !inventory) {
+    return { canCook: [], close: [] }
+  }
+
   const inventoryMap = new Map(
     inventory.map((item) => [item.name.trim(), item]),
   )
@@ -34,6 +39,11 @@ export const categorizeByInventory = (recipes: Recipe[], inventory: InventoryIte
   const close: Recipe[] = []
 
   recipes.forEach((recipe) => {
+    // 确保 ingredients 存在且是数组
+    if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) {
+      return
+    }
+
     let missingCount = 0
     recipe.ingredients.forEach((ingredient) => {
       const stock = inventoryMap.get(ingredient.name.trim())

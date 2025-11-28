@@ -53,9 +53,12 @@ export const recipeRepository = {
     }
     await db.recipes.add(recipe)
     if (isSupabaseConfigured) {
-      remote.upsertRecipe(recipe).catch((err) => {
-        console.error('Failed to sync recipe to Supabase:', err)
-      })
+      console.log('[Sync] Starting sync for recipe:', recipe.id)
+      remote.upsertRecipe(recipe)
+        .then(() => console.log('[Sync] Recipe synced successfully:', recipe.id))
+        .catch((err) => console.error('[Sync] Failed to sync recipe:', err))
+    } else {
+      console.warn('[Sync] Skipped: Supabase not configured')
     }
     return recipe
   },
@@ -102,9 +105,12 @@ export const inventoryRepository = {
     }
     await db.inventory.add(item)
     if (isSupabaseConfigured) {
-      remote.upsertInventory(item).catch((err) => {
-        console.error('Failed to sync inventory to Supabase:', err)
-      })
+      console.log('[Sync] Starting sync for inventory:', item.id)
+      remote.upsertInventory(item)
+        .then(() => console.log('[Sync] Inventory synced successfully:', item.id))
+        .catch((err) => console.error('[Sync] Failed to sync inventory:', err))
+    } else {
+      console.warn('[Sync] Skipped: Supabase not configured')
     }
     return item
   },
@@ -152,9 +158,12 @@ export const shoppingRepository = {
     }
     await db.shoppingList.add(item)
     if (isSupabaseConfigured) {
-      remote.upsertShopping(item).catch((err) => {
-        console.error('Failed to sync shopping item to Supabase:', err)
-      })
+      console.log('[Sync] Starting sync for shopping item:', item.id)
+      remote.upsertShopping(item)
+        .then(() => console.log('[Sync] Shopping item synced successfully:', item.id))
+        .catch((err) => console.error('[Sync] Failed to sync shopping item:', err))
+    } else {
+      console.warn('[Sync] Skipped: Supabase not configured')
     }
     return item
   },

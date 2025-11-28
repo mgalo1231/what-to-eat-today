@@ -300,12 +300,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
           setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
         }
-        } else {
-          setUsername(undefined)
-          setHouseholds([])
-          setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
-          setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
-        }
+      } else {
+        setUsername(undefined)
+        setHouseholds([])
+        setCurrentHouseholdId(LOCAL_HOUSEHOLD_ID)
+        setDbHouseholdId(LOCAL_HOUSEHOLD_ID)
+      }
     })
 
     return () => {

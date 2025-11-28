@@ -249,7 +249,7 @@ export const TodayPage = () => {
                 </div>
                 <p className="text-sm text-ios-muted line-clamp-2">{recipe.description}</p>
                 <div className="flex flex-wrap gap-2">
-                  {recipe.tags.slice(0, 3).map((tagItem) => (
+                  {recipe.tags?.slice(0, 3).map((tagItem) => (
                     <TagPill key={tagItem}>{tagItem}</TagPill>
                   ))}
                 </div>
@@ -329,7 +329,7 @@ export const TodayPage = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <p className="text-xs uppercase tracking-[0.2em] text-amber-600">
-                        {recipe.tags[0]}
+                        {recipe.tags?.[0] || '新菜'}
                       </p>
                       <h3 className="text-xl font-semibold text-amber-900">
                         {recipe.title}
@@ -370,7 +370,7 @@ export const TodayPage = () => {
                   <p className="text-sm text-amber-700/80 line-clamp-2">{recipe.description}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-2">
-                      {recipe.tags.slice(0, 3).map((tagItem) => (
+                      {recipe.tags?.slice(0, 3).map((tagItem) => (
                         <span
                           key={tagItem}
                           className="rounded-full bg-amber-100/80 px-2 py-0.5 text-xs text-amber-700"
@@ -427,7 +427,7 @@ export const TodayPage = () => {
               <div>
                 <p className="font-semibold">{recipe.title}</p>
                 <p className="text-xs text-ios-muted">
-                  所需食材 {recipe.ingredients.length} · {recipe.duration} 分钟
+                  所需食材 {recipe.ingredients?.length || 0} · {recipe.duration} 分钟
                 </p>
               </div>
               <TagPill tone="positive">立即开做</TagPill>

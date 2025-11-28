@@ -82,16 +82,18 @@ export const useRealtimeSync = (householdId: string | undefined) => {
           new?: Record<string, unknown>
           old?: Record<string, unknown>
         }) => {
-          console.log('🔔 Recipes Realtime event:', payload.eventType, payload.new || payload.old)
+          console.log('🔔 Recipes Realtime event received:', payload.eventType)
           try {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               if (payload.new) {
+                console.log('Syncing remote recipe to local:', payload.new.id)
                 const recipe = fromDbRecipe(payload.new)
                 await db.recipes.put(recipe)
                 console.log('✅ Recipe synced to local DB:', recipe.id)
               }
             } else if (payload.eventType === 'DELETE') {
               if (payload.old) {
+                console.log('Deleting local recipe:', payload.old.id)
                 await db.recipes.delete(payload.old.id as string)
                 console.log('✅ Recipe deleted from local DB:', payload.old.id)
               }
@@ -102,7 +104,10 @@ export const useRealtimeSync = (householdId: string | undefined) => {
         },
       )
       .subscribe((status) => {
-        console.log('Recipes channel status:', status)
+        console.log(`[Recipes Channel] Status: ${status} (household: ${householdId})`)
+        if (status === 'CHANNEL_ERROR') {
+          console.error('[Recipes Channel] Connection error. Check network or Supabase config.')
+        }
       })
 
     // 订阅 inventory 表
