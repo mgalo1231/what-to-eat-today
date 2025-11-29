@@ -3,7 +3,7 @@ import type { DiscoverRecipe } from '@/data/discoverRecipes'
 // 菜系和风格
 const cuisines = ['川菜', '粤菜', '湘菜', '东北菜', '日式', '韩式', '西式', '江浙菜', '云南菜', '新疆菜']
 const styles = ['下饭菜', '快手菜', '宴客', '低脂', '素菜', '汤', '面', '一锅端']
-const difficulties = ['容易', '中等', '挑战'] as const
+const difficulties = ['简单', '中等', '挑战'] as const
 
 // 食材库
 const proteins = ['鸡胸肉', '猪里脊', '牛腩', '五花肉', '鸡腿', '虾仁', '鱼片', '豆腐', '鸡蛋', '排骨']

@@ -44,7 +44,7 @@ const sampleRecipes: Recipe[] = [
     title: '番茄炒蛋',
     description: '最经典的家常菜，酸甜可口，5 分钟搞定。',
     duration: 10,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['快手菜', '下饭菜'],
     servings: 2,
     ingredients: [
@@ -69,7 +69,7 @@ const sampleRecipes: Recipe[] = [
     title: '蒜蓉炒青菜',
     description: '清爽解腻，任何绿叶菜都适用。',
     duration: 8,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['快手菜', '素菜'],
     servings: 2,
     ingredients: [
@@ -92,7 +92,7 @@ const sampleRecipes: Recipe[] = [
     title: '醋溜土豆丝',
     description: '酸脆爽口的经典下饭菜。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['快手菜', '下饭菜', '素菜'],
     servings: 2,
     ingredients: [
@@ -211,7 +211,7 @@ const sampleRecipes: Recipe[] = [
     title: '麻婆豆腐',
     description: '麻辣鲜香，豆腐嫩滑，米饭杀手。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['下饭菜', '快手菜'],
     servings: 2,
     ingredients: [
@@ -241,7 +241,7 @@ const sampleRecipes: Recipe[] = [
     title: '番茄蛋花汤',
     description: '酸甜开胃，营养快手汤。',
     duration: 10,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['汤', '快手菜'],
     servings: 2,
     ingredients: [
@@ -266,7 +266,7 @@ const sampleRecipes: Recipe[] = [
     title: '紫菜蛋花汤',
     description: '简单快手，鲜美可口。',
     duration: 5,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['汤', '快手菜'],
     servings: 2,
     ingredients: [
@@ -290,7 +290,7 @@ const sampleRecipes: Recipe[] = [
     title: '冬瓜排骨汤',
     description: '清淡滋补，夏天消暑必备。',
     duration: 60,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['汤'],
     servings: 4,
     ingredients: [
@@ -317,7 +317,7 @@ const sampleRecipes: Recipe[] = [
     title: '葱油拌面',
     description: '简单却惊艳，葱香四溢。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['面', '快手菜'],
     servings: 1,
     ingredients: [
@@ -343,7 +343,7 @@ const sampleRecipes: Recipe[] = [
     title: '西红柿鸡蛋面',
     description: '汤鲜面滑，温暖治愈。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['面', '快手菜'],
     servings: 1,
     ingredients: [
@@ -370,7 +370,7 @@ const sampleRecipes: Recipe[] = [
     title: '糯米南瓜一锅端',
     description: '15 分钟搞定的温暖甜咸一锅菜，适合忙碌的工作日夜宵。',
     duration: 20,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['一锅端', '素菜', '快手菜'],
     servings: 2,
     ingredients: [
@@ -394,7 +394,7 @@ const sampleRecipes: Recipe[] = [
     title: '三杯杏鲍菇',
     description: '经典台式"肉感"素菜，10 分钟就能端上桌。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['素菜', '下饭菜', '快手菜'],
     servings: 2,
     ingredients: [
@@ -452,7 +452,7 @@ const sampleRecipes: Recipe[] = [
     title: '干煸四季豆',
     description: '豆角干香，蒜香浓郁。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['素菜', '下饭菜'],
     servings: 2,
     ingredients: [
@@ -506,7 +506,7 @@ const sampleRecipes: Recipe[] = [
     title: '白灼虾',
     description: '原汁原味，高蛋白低脂肪。',
     duration: 10,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['低脂', '快手菜'],
     servings: 2,
     ingredients: [
@@ -530,7 +530,7 @@ const sampleRecipes: Recipe[] = [
     title: '凉拌黄瓜',
     description: '清爽解腻，夏日必备。',
     duration: 5,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['低脂', '快手菜', '素菜'],
     servings: 2,
     ingredients: [

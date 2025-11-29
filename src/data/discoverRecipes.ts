@@ -86,7 +86,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '蒸鱼',
     description: '清蒸保留鱼的鲜甜，粤菜经典做法。',
     duration: 20,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['粤菜', '低脂', '快手菜'],
     servings: 3,
     ingredients: [
@@ -128,7 +128,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '蚝油生菜',
     description: '清脆爽口，蚝油提鲜，3分钟上桌。',
     duration: 5,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['粤菜', '素菜', '快手菜', '低脂'],
     servings: 2,
     ingredients: [
@@ -150,7 +150,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '辣椒炒肉',
     description: '湖南人的灵魂菜，够辣够香够下饭。',
     duration: 15,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['湘菜', '下饭菜', '快手菜'],
     servings: 2,
     ingredients: [
@@ -218,7 +218,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '小鸡炖蘑菇',
     description: '鸡肉软烂，蘑菇鲜香，东北传统炖菜。',
     duration: 60,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['东北菜', '一锅端', '宴客'],
     servings: 4,
     ingredients: [
@@ -244,7 +244,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '日式咖喱饭',
     description: '浓郁香甜，蔬菜丰富，一锅满足。',
     duration: 40,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['日式', '一锅端'],
     servings: 3,
     ingredients: [
@@ -267,7 +267,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '照烧鸡腿',
     description: '甜咸适口，鸡皮焦香，便当首选。',
     duration: 25,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['日式', '下饭菜', '便当'],
     servings: 2,
     ingredients: [
@@ -289,7 +289,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '味噌汤',
     description: '日式家常汤，温暖治愈，简单快手。',
     duration: 10,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['日式', '汤', '快手菜'],
     servings: 2,
     ingredients: [
@@ -335,7 +335,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '泡菜炒饭',
     description: '酸辣开胃，粒粒分明，快手主食。',
     duration: 10,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['韩式', '快手菜', '一锅端'],
     servings: 1,
     ingredients: [
@@ -358,7 +358,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '部队锅',
     description: '料足味浓，一锅热腾腾，聚餐首选。',
     duration: 25,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['韩式', '一锅端', '宴客'],
     servings: 3,
     ingredients: [
@@ -408,7 +408,7 @@ export const discoverRecipes: DiscoverRecipe[] = [
     title: '奶油蘑菇汤',
     description: '丝滑浓郁，蘑菇香气扑鼻。',
     duration: 25,
-    difficulty: '容易',
+    difficulty: '简单',
     tags: ['西式', '汤'],
     servings: 2,
     ingredients: [

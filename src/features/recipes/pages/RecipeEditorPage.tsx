@@ -23,7 +23,7 @@ type StepState = {
   tip?: string
 }
 
-const difficultyOptions = ['容易', '中等', '挑战'] as const
+const difficultyOptions = ['简单', '中等', '挑战'] as const
 
 export const RecipeEditorPage = () => {
   const params = useParams<{ id?: string }>()
@@ -36,7 +36,7 @@ export const RecipeEditorPage = () => {
   const [description, setDescription] = useState('')
   const [duration, setDuration] = useState(20)
   const [difficulty, setDifficulty] =
-    useState<(typeof difficultyOptions)[number]>('容易')
+    useState<(typeof difficultyOptions)[number]>('简单')
   const [servings, setServings] = useState(2)
   const [tags, setTags] = useState<string[]>([])
   const [customTag, setCustomTag] = useState('')
