@@ -31,9 +31,19 @@ export class ErrorBoundary extends Component<
 		try {
 			localStorage.clear()
 			if ('indexedDB' in window) {
-				// best-effort delete, ignore errors
-				// @ts-expect-error deleteDatabase exists at runtime
-				await indexedDB.deleteDatabase('kitchen-hub')
+				try {
+					const db: any = indexedDB as any
+					if (typeof db.deleteDatabase === 'function') {
+						await new Promise<void>((resolve) => {
+							const req = db.deleteDatabase('kitchen-hub')
+							req.onsuccess = () => resolve()
+							req.onerror = () => resolve()
+							req.onblocked = () => resolve()
+						})
+					}
+				} catch {
+					// ignore
+				}
 			}
 			if ('serviceWorker' in navigator) {
 				const regs = await navigator.serviceWorker.getRegistrations()
